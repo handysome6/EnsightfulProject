@@ -2,7 +2,14 @@ import cv2
 import numpy as np
 
 class ClickImage():
+    """
+    Click image to get coord
+    """
     def __init__(self, img, windowName) -> None:
+        """
+        img: image object read by cv2.imread
+        windowName: pop up window name
+        """
         self.mouseX = 0
         self.mouseY = 0
         self.coords = []
@@ -10,11 +17,18 @@ class ClickImage():
         self.windowName = windowName
     
     def click_event(self, event, x, y, flags, param):
+        """
+        Event triggered when clcik on the image
+        """
         if event == cv2.EVENT_LBUTTONDOWN:
             # cv2.circle(self.img,(x,y),10,(255,0,0),-1)
             self.mouseX, self.mouseY = x,y
     
     def click_coord(self):
+        """
+        Pop up window.
+        Click TWO points and return its coord.
+        """
         cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
         cv2.setMouseCallback(self.windowName, self.click_event)
         while(1):
@@ -39,8 +53,6 @@ class ClickImage():
 
 
 if __name__ == '__main__':
-    # import os
-    # os.chdir
     path = "../0607_fisheye_near+far/rectify_fisheye/rectify_19_left.jpg"
     img = cv2.imread(path)
     obj = ClickImage(img, 'left')

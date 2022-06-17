@@ -1,3 +1,4 @@
+from logging import info
 import os
 import cv2
 import numpy as np
@@ -9,7 +10,7 @@ from model.camera_model import CameraModel
 
 
 class Calibrate():
-    def __init__(self, camera, operation_folder, show_result = False) -> None:
+    def __init__(self, camera, operation_folder) -> None:
         self.camera = camera
 
         # folder Path object
@@ -18,7 +19,6 @@ class Calibrate():
         self.data_folder = self.operation_folder / 'calibration_data'
         self.total_photos = len(list(self.scenes_folder.iterdir()))
         
-        self.show_result = show_result
         try:
             npz_path = self.data_folder / "chessboard.npz"
             npz_file = np.load(npz_path)
@@ -26,33 +26,9 @@ class Calibrate():
             self.imgpointsLeft = npz_file['imgpointsLeft']
             self.imgpointsRight = npz_file['imgpointsRight']
         except:
-            print("No chessboard data found. \nPlease preprocess images before calibration")
-            exit(1)
+            raise("No chessboard data found. \nPlease preprocess images before calibration")
 
-
-    def single_calibrate(self):
-        if self.camera.is_fisheye:
-            self._single_calibrate_fisheye()
-        else:
-            self._single_calibrate_vanilla()
-
-
-    def stereo_calibrate(self):
-        if self.camera.is_fisheye:
-            self._stereo_calibrate_fisheye()
-        else:
-            self._stereo_calibrate_vanilla()
-    
-
-    #################################
-    # calibrate SINGLE camera - Vanilla
-    #################################
-    def _single_calibrate_vanilla(self):
-        print("Calibrating single camera - Vanilla...")
-        objpoints = self.objpoints
-        imgpointsLeft  = self.imgpointsLeft
-        imgpointsRight = self.imgpointsRight
-
+        return 
         ############# Filter outliers ###############
         outliers_id = []#1, 30,31,32]       # result of perViewError <- stereoCalibrateExtended()
         inliers =  [True if id not in outliers_id 
@@ -62,13 +38,44 @@ class Calibrate():
         imgpointsLeft  = imgpointsLeft[inliers]
         imgpointsRight = imgpointsRight[inliers]
 
-        #region #######Calibrate Single Camera######## 
-        # ret               -> RMSE, Root Mean Square Error
-        # cameraMatrix      -> K, Intrinsic Params including fx, fy, u0, v0
-        # distCoeff         -> Distortion params
+
+    def single_calibrate(self, **arg):
+        """
+        Calibrate SINGLE left and right camera.
+        Switcher function. 
+        """
+        if self.camera.is_fisheye:
+            self._single_calibrate_fisheye()
+        else:
+            self._single_calibrate_vanilla(**arg)
+
+
+    def stereo_calibrate(self, **args):
+        """
+        Calibrate DUAL camera.
+        Switcher function. 
+        """
+        if self.camera.is_fisheye:
+            self._stereo_calibrate_fisheye(**args)
+        else:
+            self._stereo_calibrate_vanilla(**args)
+    
+
+    def _single_calibrate_vanilla(self, left_view_path = None, right_view_path = None):
+        """
+        Calibrate SINGLE camera - Vanilla
+        """
+        info("Calibrating SINGLE camera - Vanilla...")
+        objpoints = self.objpoints
+        imgpointsLeft  = self.imgpointsLeft
+        imgpointsRight = self.imgpointsRight
+        if left_view_path is not None and right_view_path is not None:
+            info("Using single images to calib ")
+            imgpointsLeft = np.load(left_view_path)['corners']
+            imgpointsRight = np.load(right_view_path)['corners']
+
         # rvecs             -> Rotation Vectors, maps world coord to image coord
         # tvecs             -> Translation Vecs
-        #endregion
         ret1, cm1, cd1, rvecs, tvecs = cv2.calibrateCamera(
                 objpoints, imgpointsLeft, 
                 self.camera.image_size, None, None
@@ -77,51 +84,41 @@ class Calibrate():
                 objpoints, imgpointsRight, 
                 self.camera.image_size, None, None
             )
-        self.camera.update_params(cm1,cd1,cm2,cd2, None, None)
+        self.camera.update_intrinsic(cm1,cd1,cm2,cd2)
 
-        if self.show_result:
-            print(f'''
-=============== Single Camera Calib ===============
+        print(f'''=============== Single Camera Calib ===============
 --------------Left Camera---------------
-RMS (Root Mean Square Error): {ret1}
-K (Intrinsic Params): \n{cm1}''', 
-            end='')
-            print(f'''
+RMS: {ret1}
+Camera Matrix: \n{cm1}
 --------------Right Camera-------------
-RMS (Root Mean Square Error): {ret2}
-K (Intrinsic Params): \n{cm2}
-            ''')
-        else:
-            print("Calibrate single camera done.")
+RMS: {ret2}
+Camera Matrix: \n{cm2}''')
+        info("Calibrate single camera done.\n")
     
-    #################################
-    # calibrate SINGLE camera - Fisheye - TODO
-    #################################
+    
     def _single_calibrate_fisheye(self):
+        """
+        Calibrate SINGLE camera - Fisheye - TODO
+        """
         pass
 
 
-    #################################
-    # calibrate STEREO camera - Vanilla
-    #################################
-    def _stereo_calibrate_vanilla(self):
-        print("Calibrating stereo camera - Vanilla...")
+    def _stereo_calibrate_vanilla(self, fix_intrinsic = True):
+        print(fix_intrinsic)
+        """
+        Calibrate STEREO camera - Vanilla
+        """
+        info("Calibrating STEREO camera - Vanilla...")
         objpoints = self.objpoints
         imgpointsLeft  = self.imgpointsLeft
         imgpointsRight = self.imgpointsRight
 
-        #region #########Calibrate Dual Camera########## 
-        # This can be replaced by ~Extended() function; pass R, T; get perViewError.
-        # RMS -> error in pixel
-        # cm1,2 -> camera matrix
-        # cd1,2 -> camera distortion
-        # R, T -> rotation and translation between two cameras
-        # E, F -> esstential and fundamental matrix
-        # perViewError -> RMS for every image pair
-        #endregion
         calib_criteria = (cv2.TERM_CRITERIA_COUNT+cv2.TERM_CRITERIA_EPS, 100, 1e-5)
-        flags = cv2.CALIB_USE_INTRINSIC_GUESS
-        RMS, cm1, cd1, cm2, cd2, R, T, E, F,perViewError = \
+        if fix_intrinsic:
+            flags = cv2.CALIB_FIX_INTRINSIC
+        else:
+            flags = cv2.CALIB_USE_INTRINSIC_GUESS
+        RMS, cm1, cd1, cm2, cd2, R, T, E, F, perViewError = \
             cv2.stereoCalibrateExtended(
                 objpoints, 
                 imgpointsLeft, imgpointsRight, 
@@ -132,33 +129,39 @@ K (Intrinsic Params): \n{cm2}
                 criteria=calib_criteria, 
                 flags=flags
             )
-        self.camera.update_params(cm1, cd1, cm2, cd2, R, T)
         
-        if self.show_result:
-            print(f'''
-================ Dual Camera Calib ================
-RMS: {RMS}
-----------Left Cam----------
+        print(f"""================ Dual Camera Calib ================
+RMS: {RMS}""")
+        if not fix_intrinsic:
+            print(f'''----------Left Cam----------
 K (Intrinsic Params): \n{cm1}
 Distortion Coefficient:\n{cd1}
 ----------Right Cam---------
 K (Intrinsic Params): \n{cm2}
-Distortion Coefficient:\n{cd2}
+Distortion Coefficient:\n{cd2}''')
+        else:
+            print(f"""Fixing intrinsic params.
 ------Extrinsic Params------
 R: \n{R}
-T: \n{T}''')
-        else:
-            print("Calibrate stereo camera done.")
+T: \n{T}""")
+        info("Calibrate stereo camera done.")
         # print(perViewError)
 
+        # update camera params
+        if fix_intrinsic:
+            self.camera.update_extrinsic(R, T)
+        else:
+            self.camera.update_intrinsic(cm1, cd1, cm2, cd2)
+            self.camera.update_extrinsic(R, T)
+        # save params
         npz_path = self.data_folder / "camera_model.npz"
         self.camera.save_model(npz_path)
 
 
-    #################################
-    # calibrate STEREO camera - Fisheye - TODO
-    #################################
     def _stereo_calibrate_fisheye(self):
+        """
+        Calibrate STEREO camera - Fisheye - TODO
+        """
         pass
 
 
@@ -168,7 +171,7 @@ if __name__ == "__main__":
     operation_folder = '0610_IMX477_infinity_still'
 
     camera = CameraModel(CCD, fisheye)
-    calibration = Calibrate(camera, operation_folder) #, show_result=False)
+    calibration = Calibrate(camera, operation_folder)
     calibration.single_calibrate()
     calibration.stereo_calibrate()
     print()

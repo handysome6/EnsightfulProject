@@ -4,6 +4,9 @@ from model.ccd_model import CCD
 
 class CameraModel():
     def __init__(self, CCD_type, is_fisheye) -> None:
+        """
+        Create camera model from init state.
+        """
         self.CCD = CCD(CCD_type)
         self.image_size = self.CCD.image_size
         self.is_fisheye = is_fisheye
@@ -14,12 +17,11 @@ class CameraModel():
         self.Q = self.leftMapX = self.leftMapY = self.rightMapX = self.rightMapY = None
         
     
-
-    #################################
-    # constructor - load camera model 
-    #################################
     @classmethod
     def load_model(class_object, npz_path) -> None:
+        """
+        Create camera model from a saved file.
+        """
         print(f"Loading camera model at {npz_path}")
         params = np.load(npz_path)
 
@@ -52,10 +54,10 @@ class CameraModel():
         return camera
     
 
-    #################################
-    # check calibrated or not
-    #################################
     def is_calibrated(self):
+        """
+        Check if this model is calibrated.
+        """
         if  self.cm1 is None or self.cd1 is None or self.cm2 is None or self.cd2 is None or \
             self.R is None or self.T is None:
             return False
@@ -63,10 +65,9 @@ class CameraModel():
             return True
 
 
-    #################################
-    # check rectified or not
-    #################################
     def is_rectified(self):
+        """
+        Check if this model is rectified"""
         if  self.Q is None or\
             self.leftMapX  is None or self.leftMapY  is None or \
             self.rightMapX is None or self.rightMapY is None:
@@ -75,22 +76,28 @@ class CameraModel():
             return True
 
 
-    #################################
-    # update intrinsic and extrinsic
-    #################################
-    def update_params(self, cm1, cd1, cm2, cd2, R, T):
+    def update_intrinsic(self, cm1, cd1, cm2, cd2):
+        """
+        Update intrinsic parameters
+        """
         self.cm1 = cm1
         self.cd1 = cd1
         self.cm2 = cm2
         self.cd2 = cd2
+
+
+    def update_extrinsic(self, R, T):
+        """
+        Update extrinsic parameters
+        """
         self.R = R
         self.T = T
 
 
-    #################################
-    # update rectify maps
-    #################################
     def update_maps(self, Q, leftMapX, leftMapY, rightMapX, rightMapY):
+        """
+        Update rectified maps.
+        """
         self.Q = Q
         self.leftMapX = leftMapX
         self.leftMapY = leftMapY
@@ -98,10 +105,10 @@ class CameraModel():
         self.rightMapY = rightMapY
 
 
-    #################################
-    # save camera model 
-    #################################
     def save_model(self, npz_path):
+        """
+        Save this model to Path.
+        """
         print(f"Saving camera model to {npz_path}")
         # mkdir if folder not exist
         npz_path.parent.mkdir(parents=True, exist_ok=True)
@@ -122,10 +129,9 @@ class CameraModel():
         )
 
 
-    #################################
-    # camera info 
-    #################################
     def __str__(self) -> str:
+        """
+        Camera info"""
         str = f"""
 CCD_type = {self.CCD_type}
 image_size = {self.image_size}

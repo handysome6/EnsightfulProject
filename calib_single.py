@@ -36,16 +36,20 @@ CHECKERBOARD = (rows,columns)
 square_size = 25
 
 camera = CameraModel(CCD, fisheye)
-# preprocess = Preprocess(camera, operation_folder)
-# preprocess.preprocess_sbs()
+preprocess = Preprocess(camera, operation_folder)
+operation_path = Path('datasets') / operation_folder
+data_path = operation_path / "calibration_data"
+preprocess.preprocess_single(operation_path / "left", data_path / 'left.npz')
+preprocess.preprocess_single(operation_path / "right", data_path / 'right.npz')
+preprocess.preprocess_sbs()
+print()
+
+# calibration = Calibrate(camera, operation_folder)
+# calibration.single_calibrate()
+# calibration.stereo_calibrate(fix_intrinsic = False)
 # print()
 
-calibration = Calibrate(camera, operation_folder)
-calibration.single_calibrate()
-calibration.stereo_calibrate(fix_intrinsic = False)
-print()
-
-rectifier = StereoRectify(camera, operation_folder)
-rectifier.rectify_camera()
-rectifier.rectify_samples()
-print()
+# rectifier = StereoRectify(camera, operation_folder)
+# rectifier.rectify_camera()
+# rectifier.rectify_samples()
+# print()

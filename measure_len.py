@@ -1,3 +1,4 @@
+from cgi import test
 import os
 import sys
 import cv2
@@ -15,13 +16,31 @@ from measure.click_coord import ClickImage
 
 # load camera model
 operation_folder = '0610_IMX477_infinity_still'
+operation_folder = '0617_IMX477_5000'
 model_path = Path("datasets") / operation_folder / "calibration_data" / "camera_model.npz"
 camera = CameraModel.load_model(model_path)
 
+# rename, only once
+def rename(test_folder):
+    # renaming
+    i = 0
+    scenes_imgs = list(test_folder.iterdir())
+    for file in scenes_imgs:
+        i += 1
+        if file.name[:7] == 'rectify':
+            continue
+        file.rename(test_folder / f"{str(i).zfill(2)}.jpg")
+
+
 # pick image
-id = sys.argv[1]
+try:
+    id = sys.argv[1]
+except:
+    id = 1
 test_folder = Path('datasets') / operation_folder / 'test' 
-img_path = test_folder / f"{id.zfill(2)}.jpg"
+assert test_folder.is_dir()
+rename(test_folder)
+img_path = list(test_folder.iterdir())[int(id)-1]
 print("Measuring", img_path.name)
 
 # rectify image
@@ -30,8 +49,8 @@ imgL, imgR = rectifier.rectify_image(img_path)
 # save
 left_name  = f"rectify_{str(id).zfill(2)}_left.jpg"
 right_name = f"rectify_{str(id).zfill(2)}_right.jpg"
-cv2.imwrite(str(test_folder / left_name), imgL)
-cv2.imwrite(str(test_folder / right_name), imgR)
+# cv2.imwrite(str(test_folder / left_name), imgL)
+# cv2.imwrite(str(test_folder / right_name), imgR)
 imgL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY)
 imgR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY)
 
@@ -71,6 +90,10 @@ def findWorldCoord2(img_coord_left, img_coord_right):
 
 subpix_criteria = (cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 50, 0.00001)
 def subPixelAccuracy(img, coords):
+    """
+    img: cv2.imread image object
+    coord: np.array containing one or more rough coords
+    """
     cv2.cornerSubPix(img,coords,(11,11),(-1,-1),subpix_criteria)
     return coords
 
