@@ -45,7 +45,7 @@ class ClickImage():
                 import time
                 # time.sleep(1)
                 cv2.destroyWindow(self.windowName)
-                return np.array(self.coords, dtype=np.float32)
+                return self.coords
             if k == 27:
                 break
             # elif k == ord('a'):

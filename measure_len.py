@@ -12,13 +12,14 @@ from calib.preprocess import Preprocess
 from calib.calibration import Calibrate
 from calib.rectification import StereoRectify
 from measure.click_coord import ClickImage
-
+from utils.utils import snap_subpix_corner
 
 # load camera model
 operation_folder = '0610_IMX477_infinity_still'
 operation_folder = '0617_IMX477_5000'
-model_path = Path("datasets") / operation_folder / "calibration_data" / "camera_model.npz"
-camera = CameraModel.load_model(model_path)
+cam_path = Path("datasets") / operation_folder / "calibration_data" / "camera_model.npz"
+# cam_path = Path("datasets") / 'calibration_data' / "0617_IMX477_5000.npz"
+camera = CameraModel.load_model(cam_path)
 
 # rename, only once
 def rename(test_folder):
@@ -36,24 +37,32 @@ def rename(test_folder):
 try:
     id = sys.argv[1]
 except:
-    id = 1
+    id = 7
+
+test_folder = Path('datasets') / operation_folder / 'scenes' 
 test_folder = Path('datasets') / operation_folder / 'test' 
 assert test_folder.is_dir()
-rename(test_folder)
+# rename(test_folder)
 img_path = list(test_folder.iterdir())[int(id)-1]
 print("Measuring", img_path.name)
 
+
 # rectify image
+sbs_img = cv2.imread(str(img_path))
+# width = 4056
+# imgL = sbs_img [:,     0:   width]
+# imgR = sbs_img [:, width: 2*width]
+# sbs_img = np.hstack([imgR, imgL])
 rectifier = StereoRectify(camera, operation_folder)
-imgL, imgR = rectifier.rectify_image(img_path)
+imgL, imgR = rectifier.rectify_image(sbs_img)
+imgL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY)
+imgR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY)
+
 # save
 left_name  = f"rectify_{str(id).zfill(2)}_left.jpg"
 right_name = f"rectify_{str(id).zfill(2)}_right.jpg"
 # cv2.imwrite(str(test_folder / left_name), imgL)
 # cv2.imwrite(str(test_folder / right_name), imgR)
-imgL = cv2.cvtColor(imgL,cv2.COLOR_BGR2GRAY)
-imgR = cv2.cvtColor(imgR,cv2.COLOR_BGR2GRAY)
-
 
 
 # measure click
@@ -88,14 +97,6 @@ def findWorldCoord2(img_coord_left, img_coord_right):
     return np.array([world_x, world_y, world_z])
 
 
-subpix_criteria = (cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 50, 0.00001)
-def subPixelAccuracy(img, coords):
-    """
-    img: cv2.imread image object
-    coord: np.array containing one or more rough coords
-    """
-    cv2.cornerSubPix(img,coords,(11,11),(-1,-1),subpix_criteria)
-    return coords
 
 
 left  = ClickImage(imgL, 'left')
@@ -105,8 +106,8 @@ img_coord_right = right.click_coord()
 assert img_coord_left is not None
 assert img_coord_right is not None
 
-subPixelAccuracy(imgL, img_coord_left)
-subPixelAccuracy(imgR, img_coord_right)
+snap_subpix_corner(imgL, img_coord_left)
+snap_subpix_corner(imgR, img_coord_right)
 # print(img_coord_left)
 # print(img_coord_right)
 
@@ -131,8 +132,8 @@ l1 = draw_line_crop(imgL, img_coord_left[0])
 l2 = draw_line_crop(imgL, img_coord_left[1])
 r1 = draw_line_crop(imgR, img_coord_right[0])
 r2 = draw_line_crop(imgR, img_coord_right[1])
-l = np.hstack([l1,l2])
-r = np.hstack([r1,r2])
+l = np.hstack([l1,r1])
+r = np.hstack([l2,r2])
 crop = np.vstack([l,r])
 crop = cv2.resize(crop, [400, 400])
 cv2.imshow('crop', crop)

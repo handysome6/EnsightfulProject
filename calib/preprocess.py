@@ -27,17 +27,17 @@ class Preprocess():
 
         # find chessboard corners params
         self.CHECKERBOARD = CHECKERBOARD
-        self.square_size = square_size
         self.chessboard_flags = cv2.CALIB_CB_ADAPTIVE_THRESH+cv2.CALIB_CB_NORMALIZE_IMAGE+cv2.CALIB_CB_FAST_CHECK
 
         # save params, sub pixel params
         self.objp = np.zeros((CHECKERBOARD[0]*CHECKERBOARD[1],3), np.float32)
         self.objp[:,:2] = np.mgrid[0:CHECKERBOARD[0],0:CHECKERBOARD[1]].T.reshape(-1,2)
-        self.objp *= self.square_size         # stereoCalibrate() export R and T in this scale
+        self.objp *= square_size         # stereoCalibrate() export R and T in this scale
         self.objpoints = []
         self.imgpointsLeft = []
         self.imgpointsRight = []
         self.subpix_criteria = (cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+
 
     def preprocess_sbs(self):
         """
@@ -46,9 +46,9 @@ class Preprocess():
         1. Split
         2. Try find chessboard corners for L and R
         3. Discard timeout sbs images
-        4. Save and rename 
+        4. Save data and rename photos
         """
-        scenes_imgs = list(self.scenes_folder.iterdir())
+        scenes_imgs = sorted(self.scenes_folder.iterdir())
         for img_path in tqdm(scenes_imgs, desc="Discarding sbs"):
             sbs_img = cv2.imread(str(img_path))
             # 1. Split
@@ -61,7 +61,7 @@ class Preprocess():
             retR, cornersR = self._try_find_chessboard(grayR)
             if not (retL and retR):
                 # 3. Discard timeout sbs images
-                info(f'\rDiscarded {img_path.name}')
+                info(f'Discarded {img_path.name}')
                 self.discard_folder.mkdir(parents=False, exist_ok=True)
                 img_path.rename(self.discard_folder / img_path.name)
             else:
@@ -75,24 +75,10 @@ class Preprocess():
         self.save_chessboard_data()
         # rename 
         i = 0
-        scenes_imgs = list(self.scenes_folder.iterdir())
+        scenes_imgs = sorted(self.scenes_folder.iterdir())
         for file in scenes_imgs:
             i += 1
             file.rename(self.scenes_folder / f"sbs_{str(i).zfill(2)}.jpg")
-
-
-    def save_chessboard_data(self):
-        """
-        Save found chessboard corners
-        """
-        # save corner coordinates
-        self.data_folder.mkdir(parents=False, exist_ok=True)
-        save_path = self.data_folder / "chessboard.npz"
-        np.savez(save_path,
-            objpoints = self.objpoints, 
-            imgpointsLeft = self.imgpointsLeft, 
-            imgpointsRight = self.imgpointsRight,)
-        info("Saved chessboard corners to" + str(save_path))
 
 
     def preprocess_single(self, input_folder, output_path):
@@ -100,7 +86,7 @@ class Preprocess():
         Preprocess single L/R image for calibrate intrinsic
         """
         single_view_corners = []
-        single_imgs = list(input_folder.iterdir())
+        single_imgs = sorted(input_folder.iterdir())
         for img_path in tqdm(single_imgs, desc=f"Discarding {input_folder.name}"):
             img = cv2.imread(str(img_path))
             gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -114,6 +100,22 @@ class Preprocess():
         # Save corners
         np.savez(output_path,
             corners = single_view_corners)
+        info(f"Saved single corners to {output_path.name}")
+
+
+    def save_chessboard_data(self):
+        """
+        Save found chessboard corners
+        """
+        # save corner coordinates
+        self.data_folder.mkdir(parents=False, exist_ok=True)
+        save_path = self.data_folder / "chessboard.npz"
+        np.savez(save_path,
+            objpoints = self.objpoints, 
+            imgpointsLeft = self.imgpointsLeft, 
+            imgpointsRight = self.imgpointsRight,
+            objp = self.objp)
+        info("Saved chessboard corners to" + str(save_path))
 
 
     def _try_find_chessboard(self, img):

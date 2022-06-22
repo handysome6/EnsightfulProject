@@ -4,19 +4,15 @@ import numpy as np
 from tqdm import tqdm
 from pathlib import Path
 
-from utils.showimg import imshow
+from utils.utils import imshow
 from model.camera_model import CameraModel
 
 
 class StereoRectify():
-    def __init__(self, camera, operation_folder, roi_ratio = 0, new_image_ratio = 1) -> None:
+    def __init__(self, camera, operation_folder) -> None:
         """Construct rectifier.
         camera: calibrated CameraModel object
         operation_folder: String format folder containing scenes/ 
-        roi_ratio: Determine how much black edge is preserved
-                    roi_ratio = 0: None black area is preserved
-                    roi_ratio = 1: all black area is preserved
-        new_image_ratio: Determine the new imagesize 
         """
         self.camera = camera
         self.width = self.camera.image_size[0]
@@ -29,22 +25,27 @@ class StereoRectify():
         self.data_folder = self.operation_folder / 'calibration_data'
         self.total_photos = len(list(self.scenes_folder.iterdir()))
 
-        # rectify required parameters
-        self.roi_ratio = roi_ratio
-        self.newImageSize = np.array(self.camera.image_size) * new_image_ratio
 
-
-    def rectify_camera(self):
+    def rectify_camera(self, roi_ratio = 0, new_image_ratio = 1):
         """
         Switch to call diff rectify method 
+        roi_ratio: Determine how much black edge is preserved
+                    roi_ratio = 0: None black area is preserved
+                    roi_ratio = 1: all black area is preserved
+        new_image_ratio: Determine the new imagesize 
         """
+        # rectify parameters
+        roi_ratio = roi_ratio
+        newImageSize = np.array(self.camera.image_size) * new_image_ratio
+        newImageSize = np.array(newImageSize, dtype=np.int32)
+
         if not self.camera.is_calibrated():
             print("No calib_data found. \nPlease calib camera before rectify")
             exit()
         if self.camera.is_fisheye:
-            self._stereo_rectify_fisheye()
+            self._stereo_rectify_fisheye(roi_ratio, newImageSize)
         else:
-            self._stereo_rectify_vanilla()
+            self._stereo_rectify_vanilla(roi_ratio, newImageSize)
 
 
     def rectify_samples(self):
@@ -60,7 +61,8 @@ class StereoRectify():
         i = 0
         for img_path in tqdm(scenes_imgs, desc="Rectifying".ljust(10)):
             i += 1
-            imgL, imgR = self.rectify_image(img_path)
+            sbs_img = cv2.imread(str(img_path))
+            imgL, imgR = self.rectify_image(sbs_img)
             left_name  = f"rectify_{str(i).zfill(2)}_left.jpg"
             right_name = f"rectify_{str(i).zfill(2)}_right.jpg"
             cv2.imwrite(str(self.rectify_folder / left_name), imgL)
@@ -68,7 +70,7 @@ class StereoRectify():
         print("Rectify images done.")
 
 
-    def rectify_image(self, img_path):
+    def rectify_image(self, sbs_img):
         """ 
         Rectify single sbs image using maps
         img_path: Path object to single sbs image
@@ -77,7 +79,6 @@ class StereoRectify():
             raise Exception("Camera not rectified.")
             exit()
         
-        sbs_img = cv2.imread(str(img_path))
         # split
         imgL = sbs_img [:,          0:   self.width]
         imgR = sbs_img [:, self.width: 2*self.width]
@@ -86,7 +87,7 @@ class StereoRectify():
         return imgL, imgR
 
 
-    def _stereo_rectify_vanilla(self):  
+    def _stereo_rectify_vanilla(self, alpha, newImageSize):  
         """
         Compute rectify map in Vanilla approach
         """
@@ -97,13 +98,13 @@ class StereoRectify():
                 self.camera.cm2, self.camera.cd2, 
                 self.camera.image_size, 
                 self.camera.R, self.camera.T,
-                alpha=self.roi_ratio,
-                newImageSize=self.newImageSize,
+                alpha=alpha,
+                newImageSize=newImageSize,
             )
         
         # create map for rectification
-        leftMapX, leftMapY  = cv2.initUndistortRectifyMap(self.camera.cm1, self.camera.cd1, R1, P1, self.newImageSize, cv2.CV_16SC2)
-        rightMapX, rightMapY= cv2.initUndistortRectifyMap(self.camera.cm2, self.camera.cd2, R2, P2, self.newImageSize, cv2.CV_16SC2)
+        leftMapX, leftMapY  = cv2.initUndistortRectifyMap(self.camera.cm1, self.camera.cd1, R1, P1, newImageSize, cv2.CV_16SC2)
+        rightMapX, rightMapY= cv2.initUndistortRectifyMap(self.camera.cm2, self.camera.cd2, R2, P2, newImageSize, cv2.CV_16SC2)
         print("Calculate map done.")
 
         # save updated camera model
@@ -112,7 +113,7 @@ class StereoRectify():
         self.camera.save_model(npz_path)
 
 
-    def _stereo_rectify_fisheye(self):
+    def _stereo_rectify_fisheye(self, alpha, newImageSize):
         """
         Compute rectify map in Fisheye approach - TODO
         """

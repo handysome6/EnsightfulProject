@@ -39,17 +39,19 @@ camera = CameraModel(CCD, fisheye)
 preprocess = Preprocess(camera, operation_folder)
 operation_path = Path('datasets') / operation_folder
 data_path = operation_path / "calibration_data"
-preprocess.preprocess_single(operation_path / "left", data_path / 'left.npz')
-preprocess.preprocess_single(operation_path / "right", data_path / 'right.npz')
-preprocess.preprocess_sbs()
+# preprocess.preprocess_single(operation_path / "left", data_path / 'left.npz')
+# preprocess.preprocess_single(operation_path / "right", data_path / 'right.npz')
+# preprocess.preprocess_sbs()
 print()
 
 # calibration = Calibrate(camera, operation_folder)
-# calibration.single_calibrate()
+# calibration.calibrate_left_right()
 # calibration.stereo_calibrate(fix_intrinsic = False)
 # print()
 
-# rectifier = StereoRectify(camera, operation_folder)
-# rectifier.rectify_camera()
-# rectifier.rectify_samples()
+model_path = data_path / "camera_model.npz"
+camera = CameraModel.load_model(model_path)
+rectifier = StereoRectify(camera, operation_folder)
+rectifier.rectify_camera(roi_ratio=0, new_image_ratio=1)
+rectifier.rectify_samples()
 # print()
