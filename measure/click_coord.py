@@ -24,7 +24,7 @@ class ClickImage():
             # cv2.circle(self.img,(x,y),10,(255,0,0),-1)
             self.mouseX, self.mouseY = x,y
     
-    def click_coord(self):
+    def click_coord(self, num=2):
         """
         Pop up window.
         Click TWO points and return its coord.
@@ -41,9 +41,7 @@ class ClickImage():
                 (self.mouseX, self.mouseY) not in self.coords:
                 # print((self.mouseX, self.mouseY))
                 self.coords.append((self.mouseX, self.mouseY))
-            if len(self.coords) == 2:
-                import time
-                # time.sleep(1)
+            if len(self.coords) ==num:
                 cv2.destroyWindow(self.windowName)
                 return self.coords
             if k == 27:

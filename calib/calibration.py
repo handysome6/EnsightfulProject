@@ -1,7 +1,6 @@
 from logging import info
 import os
 import cv2
-from matplotlib.pyplot import axis
 import numpy as np
 from tqdm import tqdm
 from pathlib import Path

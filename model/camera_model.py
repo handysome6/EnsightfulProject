@@ -18,7 +18,7 @@ class CameraModel():
         
     
     @classmethod
-    def load_model(class_object, npz_path) -> None:
+    def load_model(cls, npz_path) -> None:
         """
         Create camera model from a saved file.
         """

@@ -1,18 +1,12 @@
-from cgi import test
-import os
 import sys
 import cv2
 import numpy as np
-from tqdm import tqdm
 from pathlib import Path
 
-# from showimg import imshow
 from model.camera_model import CameraModel
-from calib.preprocess import Preprocess
-from calib.calibration import Calibrate
 from calib.rectification import StereoRectify
 from measure.click_coord import ClickImage
-from utils.utils import snap_subpix_corner
+from utils.utils import snap_subpix_corner, imshow
 
 # load camera model
 operation_folder = '0610_IMX477_infinity_still'
@@ -106,8 +100,8 @@ img_coord_right = right.click_coord()
 assert img_coord_left is not None
 assert img_coord_right is not None
 
-snap_subpix_corner(imgL, img_coord_left)
-snap_subpix_corner(imgR, img_coord_right)
+img_coord_left = snap_subpix_corner(imgL, img_coord_left)
+img_coord_right = snap_subpix_corner(imgR, img_coord_right)
 # print(img_coord_left)
 # print(img_coord_right)
 
