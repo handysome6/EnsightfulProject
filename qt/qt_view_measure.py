@@ -30,7 +30,7 @@ class ViewMeasureWindow(QWidget):
 
         # measure
         ruler = Ruler(camera, imgL, imgR)
-        ruler.click_segment(automatch=True, matcher=MATCHER_TYPE.VGG)
+        ruler.click_segment(automatch=False, matcher=MATCHER_TYPE.VGG)
         len = ruler.measure_segment()
         print(len)
 

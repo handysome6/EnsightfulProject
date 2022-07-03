@@ -9,9 +9,8 @@ from measure.click_coord import ClickImage
 from utils.utils import snap_subpix_corner, imshow
 
 # load camera model
-operation_folder = '0610_IMX477_infinity_still'
-operation_folder = '0617_IMX477_5000'
-cam_path = Path("datasets") / operation_folder / "calibration_data" / "camera_model.npz"
+operation_folder = Path("datasets") / '0617_IMX477_5000'
+cam_path = operation_folder / "calibration_data" / "camera_model.npz"
 # cam_path = Path("datasets") / 'calibration_data' / "0617_IMX477_5000.npz"
 camera = CameraModel.load_model(cam_path)
 

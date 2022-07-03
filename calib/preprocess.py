@@ -19,7 +19,7 @@ class Preprocess():
         self.height = self.camera.image_size[1]
         
         # folder Path object
-        self.operation_folder = Path(f'datasets/{operation_folder}')
+        self.operation_folder = operation_folder
         assert self.operation_folder.is_dir()
         self.scenes_folder = self.operation_folder / 'scenes'
         self.data_folder = self.operation_folder / 'calibration_data'

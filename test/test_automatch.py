@@ -19,12 +19,12 @@ right = cv2.cvtColor(cv2.imread(str(right_path)), cv2.COLOR_BGR2GRAY)
 
 id = 2
 # load camera model
-operation_folder = '0617_IMX477_5000'
-cam_path = Path("datasets") / operation_folder / "calibration_data" / "camera_model.npz"
+operation_folder = Path("datasets") / '0617_IMX477_5000'
+cam_path = operation_folder / "calibration_data" / "camera_model.npz"
 camera = CameraModel.load_model(cam_path)
 
-test_folder = Path('datasets') / operation_folder / 'scenes' 
-test_folder = Path('datasets') / operation_folder / 'test' 
+test_folder = operation_folder / 'scenes' 
+test_folder = operation_folder / 'test' 
 assert test_folder.is_dir()
 img_path = list(test_folder.iterdir())[int(id)-1]
 print("Measuring", img_path.name)

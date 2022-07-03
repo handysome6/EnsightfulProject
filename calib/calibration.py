@@ -1,8 +1,6 @@
 from logging import info
-import os
 import cv2
 import numpy as np
-from tqdm import tqdm
 from pathlib import Path
 
 # from showimg import imshow
@@ -14,7 +12,7 @@ class Calibrate():
         self.camera = camera
 
         # folder Path object
-        self.operation_folder = Path(f'datasets/{operation_folder}')
+        self.operation_folder = operation_folder
         self.scenes_folder = self.operation_folder / 'scenes'
         self.data_folder = self.operation_folder / 'calibration_data'
         self.total_photos = len(sorted(self.scenes_folder.iterdir()))
@@ -244,7 +242,7 @@ T: \n{T}""")
 if __name__ == "__main__":
     CCD = 'IMX477'
     fisheye = False
-    operation_folder = '0610_IMX477_infinity_still'
+    operation_folder = Path("datasets") / '0610_IMX477_infinity_still'
 
     camera = CameraModel(CCD, fisheye)
     calibration = Calibrate(camera, operation_folder)

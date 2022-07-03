@@ -13,24 +13,24 @@ from measure.ruler import Ruler
 try:    id = sys.argv[1]
 except: id = 1
 
-
+# region
 # pick image
-operation_folder = '0617_IMX477_5000'
-test_folder = Path('datasets') / operation_folder / 'scenes' 
-test_folder = Path('datasets') / operation_folder / 'test' 
+operation_folder = Path("datasets") / '0617_IMX477_5000'
+test_folder = operation_folder / 'scenes' 
+test_folder = operation_folder / 'test' 
 assert test_folder.is_dir()
 img_path = list(test_folder.iterdir())[int(id)-1]
 print("Measuring", img_path.name)
 
 # load camera model
-cam_path = Path("datasets") / operation_folder / "calibration_data" / "camera_model.npz"
+cam_path = operation_folder / "calibration_data" / "camera_model.npz"
 camera = CameraModel.load_model(cam_path)
 
 # rectify image
 sbs_img = cv2.imread(str(img_path))
 rectifier = StereoRectify(camera, operation_folder)
 imgL, imgR = rectifier.rectify_image(sbs_img)
-
+#endregion
 
 # measure
 ruler = Ruler(camera, imgL, imgR)
