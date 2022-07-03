@@ -10,10 +10,8 @@ from utils.utils import snap_subpix_corner, imshow
 from measure.ruler import Ruler
 
 
-try:
-    id = sys.argv[1]
-except:
-    id = 1
+try:    id = sys.argv[1]
+except: id = 1
 
 
 # pick image

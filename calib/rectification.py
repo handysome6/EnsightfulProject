@@ -12,18 +12,19 @@ class StereoRectify():
     def __init__(self, camera, operation_folder) -> None:
         """Construct rectifier.
         camera: calibrated CameraModel object
-        operation_folder: String format folder containing scenes/ 
+        operation_folder: Path object, folder containing 'scenes/'
         """
         self.camera = camera
         self.width = self.camera.image_size[0]
         self.height = self.camera.image_size[1]
 
         # folder Path object
-        self.operation_folder = Path(f'datasets/{operation_folder}')
-        self.scenes_folder = self.operation_folder / 'scenes'
-        self.rectify_folder = self.operation_folder / 'rectified'
-        self.data_folder = self.operation_folder / 'calibration_data'
-        self.total_photos = len(list(self.scenes_folder.iterdir()))
+        if operation_folder != None:
+            self.operation_folder = operation_folder
+            self.scenes_folder = self.operation_folder / 'scenes'
+            self.rectify_folder = self.operation_folder / 'rectified'
+            self.data_folder = self.operation_folder / 'calibration_data'
+            self.total_photos = len(list(self.scenes_folder.iterdir()))
 
 
     def rectify_camera(self, roi_ratio = 0, new_image_ratio = 1):
