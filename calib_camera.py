@@ -31,7 +31,8 @@ CCD = 'IMX477'
 fisheye = False
 
 # Hyperparams
-operation_folder = Path("datasets") / '0617_IMX477_5000'
+folder_name = "0703_IMX477_6mm_newCalib"
+operation_folder = Path("datasets") / folder_name
 rows = 8
 columns = 11
 CHECKERBOARD = (rows,columns)
@@ -48,8 +49,9 @@ calibration.calibrate_left_right()
 calibration.stereo_calibrate(fix_intrinsic = False)
 print()
 
-model_path = data_path / "camera_model.npz"
-camera = CameraModel.load_model(model_path)
+# camera_path = operation_folder / 'camera_model'
+# model_path = camera_path / "camera_model.npz"
+# camera = CameraModel.load_model(model_path)
 rectifier = StereoRectify(camera, operation_folder)
 rectifier.rectify_camera(roi_ratio=0, new_image_ratio=1)
 rectifier.rectify_samples()

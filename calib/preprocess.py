@@ -115,7 +115,7 @@ class Preprocess():
             imgpointsLeft = self.imgpointsLeft, 
             imgpointsRight = self.imgpointsRight,
             objp = self.objp)
-        info("Saved chessboard corners to" + str(save_path))
+        info("Saved chessboard corners to " + str(save_path))
 
 
     def _try_find_chessboard(self, img):

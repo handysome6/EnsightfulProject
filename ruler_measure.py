@@ -15,7 +15,10 @@ except: id = 1
 
 # region
 # pick image
-operation_folder = Path("datasets") / '0617_IMX477_5000'
+folder_name = "0703_IMX477_6mm_newCalib"
+operation_folder = Path("datasets") / folder_name
+
+# operation_folder = Path("datasets") / '0617_IMX477_5000'
 test_folder = operation_folder / 'scenes' 
 test_folder = operation_folder / 'test' 
 assert test_folder.is_dir()
@@ -23,7 +26,7 @@ img_path = list(test_folder.iterdir())[int(id)-1]
 print("Measuring", img_path.name)
 
 # load camera model
-cam_path = operation_folder / "calibration_data" / "camera_model.npz"
+cam_path = operation_folder / "camera_model" / "camera_model.npz"
 camera = CameraModel.load_model(cam_path)
 
 # rectify image
@@ -34,7 +37,7 @@ imgL, imgR = rectifier.rectify_image(sbs_img)
 
 # measure
 ruler = Ruler(camera, imgL, imgR)
-ruler.click_segment(automatch=True, matcher=MATCHER_TYPE.SIFT)
+ruler.click_segment(automatch=False, matcher=MATCHER_TYPE.SIFT)
 len = ruler.measure_segment()
 print(len)
 

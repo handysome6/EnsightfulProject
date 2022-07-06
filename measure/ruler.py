@@ -74,7 +74,6 @@ class Ruler():
 ######################### TODO #########################
     def get_segment_endpoints(self, matcher = MATCHER_TYPE.VGG):
         # hand pick endpoints - LEFT
-        left_clicker = ClickImage(self.left_img, 'Please click segment')
         self.click_coord()
         # snap to corner - LEFT
         img_point_left = snap_subpix_corner(self.left_gray, img_point_left)

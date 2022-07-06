@@ -15,6 +15,7 @@ class Calibrate():
         self.operation_folder = operation_folder
         self.scenes_folder = self.operation_folder / 'scenes'
         self.data_folder = self.operation_folder / 'calibration_data'
+        self.camera_folder = self.operation_folder / 'camera_model'
         self.total_photos = len(sorted(self.scenes_folder.iterdir()))
         
         # init objp points cooord in single image
@@ -215,7 +216,7 @@ T: \n{T}""")
             self.camera.update_intrinsic(cm1, cd1, cm2, cd2)
             self.camera.update_extrinsic(R, T)
         # save params
-        npz_path = self.data_folder / "camera_model.npz"
+        npz_path = self.camera_folder / "camera_model.npz"
         self.camera.save_model(npz_path)
 
 

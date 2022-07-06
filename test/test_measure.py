@@ -33,7 +33,7 @@ except:
     id = 7
 
 test_folder = Path('datasets') / operation_folder / 'scenes' 
-test_folder = Path('datasets') / operation_folder / 'test' 
+test_folder =operation_folder / 'test' 
 assert test_folder.is_dir()
 # rename(test_folder)
 img_path = list(test_folder.iterdir())[int(id)-1]

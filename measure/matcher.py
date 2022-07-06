@@ -40,27 +40,24 @@ class AutoMatcher():
         self.min_disp = 50
         self.matcher = matcher
         
-        match matcher:
-            case MATCHER_TYPE.SIFT:
-                self.point_discriptor = cv2.SIFT_create()
-            # case MATCHER_TYPE.SURF:    # WARN: SURF is patented. 
-            #     self.point_discriptor = cv2.xfeatures2d.SURF_create(extended=True)
-            case MATCHER_TYPE.BRIEF:
-                self.point_discriptor = cv2.xfeatures2d.BriefDescriptorExtractor_create(bytes=64)
-            case MATCHER_TYPE.LUCID:
-                self.point_discriptor = cv2.xfeatures2d.LUCID_create()
-            case MATCHER_TYPE.LATCH:
-                self.point_discriptor = cv2.xfeatures2d.LATCH_create(bytes=32, rotationInvariance=False)
-            case MATCHER_TYPE.DAISY:
-                self.point_discriptor = cv2.xfeatures2d.DAISY_create(radius=30, use_orientation = False)
-            case MATCHER_TYPE.BOOST:
-                self.point_discriptor = cv2.xfeatures2d.BoostDesc_create(use_scale_orientation=False, scale_factor=40.)
-            case MATCHER_TYPE.VGG:
-                self.point_discriptor = cv2.xfeatures2d.VGG_create(use_scale_orientation=False, scale_factor=25.)
-            case MATCHER_TYPE.BRISK:
-                self.point_discriptor = cv2.BRISK_create()
-            case MATCHER_TYPE.FREAK:
-                self.point_discriptor = cv2.xfeatures2d.FREAK_create(orientationNormalized=False)
+        if matcher == MATCHER_TYPE.SIFT:
+            self.point_discriptor = cv2.SIFT_create()
+        elif matcher == MATCHER_TYPE.BRIEF:
+            self.point_discriptor = cv2.xfeatures2d.BriefDescriptorExtractor_create(bytes=64)
+        elif matcher == MATCHER_TYPE.LUCID:
+            self.point_discriptor = cv2.xfeatures2d.LUCID_create()
+        elif matcher == MATCHER_TYPE.LATCH:
+            self.point_discriptor = cv2.xfeatures2d.LATCH_create(bytes=32, rotationInvariance=False)
+        elif matcher == MATCHER_TYPE.DAISY:
+            self.point_discriptor = cv2.xfeatures2d.DAISY_create(radius=30, use_orientation = False)
+        elif matcher == MATCHER_TYPE.BOOST:
+            self.point_discriptor = cv2.xfeatures2d.BoostDesc_create(use_scale_orientation=False, scale_factor=40.)
+        elif matcher == MATCHER_TYPE.VGG:
+            self.point_discriptor = cv2.xfeatures2d.VGG_create(use_scale_orientation=False, scale_factor=25.)
+        elif matcher == MATCHER_TYPE.BRISK:
+            self.point_discriptor = cv2.BRISK_create()
+        elif matcher == MATCHER_TYPE.FREAK:
+            self.point_discriptor = cv2.xfeatures2d.FREAK_create(orientationNormalized=False)
 
 
     def match(self, point, show_result=False):
@@ -116,17 +113,16 @@ class AutoMatcher():
 
 
     def kp_size(self, dist):
-        match self.matcher:
-            case MATCHER_TYPE.SIFT:
-                return 140000 / (dist+0.01)
-            case MATCHER_TYPE.BRIEF:
-                return 280000 / (dist+0.01)
-            case MATCHER_TYPE.DAISY:
-                return 70 / (dist+0.01)
-            case MATCHER_TYPE.VGG:
-                return 1400 / (dist+0.01)
-            case MATCHER_TYPE.FREAK:
-                return 280000 / (dist+0.01)
+        if self.matcher == MATCHER_TYPE.SIFT:
+            return 140000 / (dist+0.01)
+        elif self.matcher == MATCHER_TYPE.BRIEF:
+            return 280000 / (dist+0.01)
+        elif self.matcher == MATCHER_TYPE.DAISY:
+            return 70 / (dist+0.01)
+        elif self.matcher == MATCHER_TYPE.VGG:
+            return 1400 / (dist+0.01)
+        elif self.matcher == MATCHER_TYPE.FREAK:
+            return 280000 / (dist+0.01)
         
         return 140000 / (dist+0.01)
 

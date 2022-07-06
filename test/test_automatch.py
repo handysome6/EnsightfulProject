@@ -7,7 +7,7 @@ from measure.click_coord import ClickImage
 from model.camera_model import CameraModel
 from calib.rectification import StereoRectify
 
-img_folder = Path('datasets') / '0617_IMX477_5000' / 'test'
+img_folder = Path('datasets') / '0617_IMX477_5000' 
 left_path  = img_folder / 'rectify_02_left.jpg'
 right_path = img_folder / 'rectify_02_right.jpg'
 left = cv2.cvtColor(cv2.imread(str(left_path)), cv2.COLOR_BGR2GRAY)
@@ -50,7 +50,7 @@ print(coords)
 regions = []
 kps = []
 # auto match point
-matcher = AutoMatcher(left, right, MATCHER_TYPE.DAISY)
+matcher = AutoMatcher(left, right, MATCHER_TYPE.SIFT)
 for coord in coords:
     region, top_kps = matcher.match(coord, show_result=False)
     regions += region

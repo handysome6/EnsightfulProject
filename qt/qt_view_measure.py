@@ -1,6 +1,6 @@
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget
-from PySide6 import QtCore, QtWidgets, QtGui
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget
+from PyQt5 import QtCore, QtWidgets, QtGui
 import cv2
 import numpy as np
 from pathlib import Path

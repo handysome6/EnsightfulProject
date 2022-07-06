@@ -24,6 +24,7 @@ class StereoRectify():
             self.scenes_folder = self.operation_folder / 'scenes'
             self.rectify_folder = self.operation_folder / 'rectified'
             self.data_folder = self.operation_folder / 'calibration_data'
+            self.camera_folder = self.operation_folder / 'camera_model'
             self.total_photos = len(list(self.scenes_folder.iterdir()))
 
 
@@ -110,7 +111,7 @@ class StereoRectify():
 
         # save updated camera model
         self.camera.update_maps(Q, leftMapX, leftMapY, rightMapX, rightMapY)
-        npz_path = self.data_folder / "camera_model.npz"
+        npz_path = self.camera_folder / "camera_model.npz"
         self.camera.save_model(npz_path)
 
 
