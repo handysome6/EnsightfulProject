@@ -128,7 +128,7 @@ def gstreamer_pipeline(
 
 def laplacian(img):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    return cv2.Laplacian(img, cv2.CV_16S)
+    return cv2.Laplacian(img, cv2.CV_16S).var()
 
 def run_cameras():
     window_title = "Dual CSI Cameras"
@@ -176,7 +176,7 @@ def run_cameras():
                 # display lap sharpness
                 left_image =   left_image[display_height//2-d:display_height//2+d, display_width//2-d:display_width//2+d, :]
                 right_image = right_image[display_height//2-d:display_height//2+d, display_width//2-d:display_width//2+d, :]
-                print(f"\r {laplacian(left_image)} \t {laplacian(right_image)}")
+                print(f"\r \t{laplacian(left_image):.2f} \t {laplacian(right_image):.2f}", end="")
 
                 # Use numpy to place images next to each other
                 camera_images = np.hstack((left_image, right_image)) 
