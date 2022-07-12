@@ -130,10 +130,10 @@ def capture_hd():
         gstreamer_pipeline(
             sensor_id=0,
             capture_width=4056,
-            capture_height=1080,
+            capture_height=3040,
             # flip_method=0,
-            display_width=display_width,
-            display_height=display_height,
+            display_width=4056,
+            display_height=3040,
         )
     )
     left_camera.start()
