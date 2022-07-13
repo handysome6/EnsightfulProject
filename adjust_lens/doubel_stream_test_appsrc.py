@@ -72,12 +72,12 @@ class CSI_Camera:
         if self.read_thread != None:
             self.read_thread.join()
 
-src_pipeline = "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=(int)4056, height=(int)3040,format=(string)NV12, framerate=(fraction)30/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! queue ! appsink drop=1"
-camera_src = CSI_Camera()
-camera_src.open(src_pipeline)
-camera_src.start()
+# src_pipeline = "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=(int)4056, height=(int)3040,format=(string)NV12, framerate=(fraction)30/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! queue ! appsink drop=1"
+# camera_src = CSI_Camera()
+# camera_src.open(src_pipeline)
+# camera_src.start()
 
-preview_pipeline = "appsrc ! queue ! videoconvert ! video/x-raw, width=(int)960, height=(int)540, format=BGRx ! appsink"
+preview_pipeline = "udpsrc port=5005 ! application/x-rtp,encoding-name=H264,payload=96 ! rtph264depay ! avdec_h264 ! appsink sync=0"
 cam_preview = CSI_Camera()
 cam_preview.open(preview_pipeline)
 cam_preview.start()
