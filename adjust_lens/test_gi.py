@@ -20,7 +20,7 @@ class Sender:
 
 		# Create GStreamer elements
 		# Video source device
-		self.src = Gst.ElementFactory.make('nvcamerasrc', None)
+		self.src = Gst.ElementFactory.make('nvarguscamerasrc', None)
 
 		# conversion pipeline
 		self.srccaps = Gst.Caps.from_string("video/x-raw(memory:NVMM), format=(string)I420")
