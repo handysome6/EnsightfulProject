@@ -77,7 +77,8 @@ class CSI_Camera:
 # camera_src.open(src_pipeline)
 # camera_src.start()
 
-preview_pipeline = "udpsrc port=5005 ! application/x-rtp,encoding-name=H264,payload=96 ! rtph264depay ! h264parse ! decodebin ! videoconvert ! appsink sync=0"
+preview_pipeline = \
+"udpsrc port=5005 ! application/x-rtp,payload=96,encoding-name=H264 ! rtpjitterbuffer mode=1 ! rtph264depay ! h264parse ! decodebin ! videoconvert ! appsink sync=0"
 cam_preview = CSI_Camera()
 cam_preview.open(preview_pipeline)
 cam_preview.start()
