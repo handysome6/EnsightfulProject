@@ -8,42 +8,37 @@ Gst.init(None)
 
 
 class Sender:
-	def __init__(self):
-		# Create GStreamer pipeline
-		self.pipeline = Gst.Pipeline()
+    def __init__(self):
+        # Create GStreamer pipeline
+        self.pipeline = Gst.parse_launch(
+        "nvarguscamerasrc ! "
+        "appsink sync=false max-buffers=2 drop=true name=preview emit-signals=true"
+        )
 
-		# Create bus to get events from GStreamer pipeline
-		self.bus = self.pipeline.get_bus()
-		self.bus.add_signal_watch()
-		self.bus.connect('message::error', self.on_error)
+        # Create bus to get events from GStreamer pipeline
+        self.bus = self.pipeline.get_bus()
+        self.bus.add_signal_watch()
+        self.bus.connect('message::error', self.on_error)
 
-
-		# Create GStreamer elements
-		# Video source device
-		self.src = Gst.ElementFactory.make('nvarguscamerasrc', None)
-
-		# conversion pipeline
-		self.srccaps = Gst.Caps.from_string("video/x-raw(memory:NVMM), format=(string)I420")
-		self.nvoverlaysink = Gst.ElementFactory.make('nvoverlaysink', None)
-
-		# Add elements to the pipeline
-		self.pipeline.add(self.src)
-		self.pipeline.add(self.nvoverlaysink)
+        self.preview_sink = self.pipeline.get_by_name("preview")
+        print(type(self.pipeline))
+        print(type(self.preview_sink))
 
 
-		self.src.link_filtered(self.nvoverlaysink, self.srccaps)
+    # run the program
+    def run(self):
+            self.pipeline.set_state(Gst.State.PLAYING)
+            
+            sample = self.preview_sink.emit('pull-sample')
+            print(type(sample))
+            print(type(sample.get_buffer()))
+            GLib.MainLoop().run()
 
-
-	# run the program
-	def run(self):
-		self.pipeline.set_state(Gst.State.PLAYING)
-		GLib.MainLoop().run()
-
-	def on_error(self, bus, msg):
-		print('on_error():', msg.parse_error())
+    def on_error(self, bus, msg):
+            print('on_error():', msg.parse_error())
 
 
 ## START EVERYTHING
 if __name__ == '__main__':
-	sender = Sender()
-	sender.run()
+    sender = Sender()
+    sender.run()
