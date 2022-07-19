@@ -14,10 +14,11 @@ gi.require_version('GstApp', '1.0')
 gi.require_version('GstVideo', '1.0')
 from gi.repository import GObject, Gst, GLib, GstApp, GstVideo
 
+
 DEFAULT_PIPELINE = \
     "nvarguscamerasrc ! "\
-    "video/x-raw(memory:NVMM), width=(int)1280, height=(int)720, framerate=(fraction)24/1 ! "\
-    "nvvidconv flip-method=2 ! video/x-raw, format=(string)BGRx ! "\
+    "video/x-raw(memory:NVMM), width=(int)3840, height=(int)2160, framerate=(fraction)30/1 ! "\
+    "nvvidconv flip-method=0 ! video/x-raw, width=(int)1280, height=(int)720, format=(string)BGRx ! "\
     "videoconvert ! video/x-raw, format=(string)RGB ! "\
     "appsink name=preview emit-signals=True"
 
@@ -41,7 +42,7 @@ def extract_buffer(sample: Gst.Sample) -> np.ndarray:
 
 
 class GSTCamera():
-    def __init__(self, command) -> None:
+    def __init__(self, command = DEFAULT_PIPELINE) -> None:
         self.command = command
         self.preview_frame = None
         self.preview_readlock = threading.Lock()
@@ -50,7 +51,7 @@ class GSTCamera():
         self.preview_thread = None
         self.capture_thread = None
         self.running = False
-    
+        self.FRAME_COUNT = 0
 
     def start(self):
         if self.running:
@@ -58,6 +59,7 @@ class GSTCamera():
             return None
 
         # launch pipeline 
+        Gst.init(None)
         self.pipeline = Gst.parse_launch(self.command)
         # start playing 
         self.pipeline.set_state(Gst.State.PLAYING)
@@ -70,11 +72,12 @@ class GSTCamera():
         self.running = True
         self.read_thread = threading.Thread(target=self._run_main_loop)
         self.read_thread.start()
-        # pull first frame
-        self._on_buffer(self.preview_sink, None)
-        print("First frame pulled")
+
         # get AppSink
         self.preview_sink = self.pipeline.get_by_name("preview")
+        # pull first frame to avoid reading empty frame
+        self._on_buffer(self.preview_sink, None)
+        print("First frame pulled")
         self.preview_sink.connect("new-sample", self._on_buffer, None)
 
     
@@ -107,11 +110,12 @@ class GSTCamera():
         # Emit 'pull-sample' signal
         sample = sink.emit("pull-sample")  # Gst.Sample
 
-        if isinstance(sample, Gst.Sample):
+        if isinstance(sample, Gst.Sample) and self.running:
             frame = extract_buffer(sample)
             with self.preview_readlock:
                 self.preview_frame = frame
-            print(f"Received {type(frame)} with shape {frame.shape} of type {frame.dtype}")
+            #print(f"\Generated {self.FRAME_COUNT}-th {type(preview_frame)} frame with shape {frame.shape} of type {frame.dtype}", end="")
+            self.FRAME_COUNT += 1
             return Gst.FlowReturn.OK
         else:
             return Gst.FlowReturn.ERROR
@@ -125,19 +129,23 @@ class GSTCamera():
 
     def stop(self):
         self.running = False
+        self.pipeline.set_state(Gst.State.NULL)
         self.loop.quit()
+        self.preview_frame = None
         # Kill the thread
         self.read_thread.join()
         self.read_thread = None
+        print("Pipeline finished gracefully.")
 
 
 
 
 
-camera = GSTCamera(DEFAULT_PIPELINE)
-camera.start()
+if __name__ == "__main__":
+    camera = GSTCamera(DEFAULT_PIPELINE)
+    camera.start()
 
-#time.sleep(1)
-frame = camera.read_preview()
-img = Image.fromarray(frame)
-img.show()
+    #time.sleep(1)
+    frame = camera.read_preview()
+    img = Image.fromarray(frame)
+    img.show()
