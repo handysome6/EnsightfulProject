@@ -16,19 +16,29 @@ from gi.repository import GObject, Gst, GLib, GstApp, GstVideo
 
 
 pipeline = \
-    "nvarguscamerasrc ! tee name=t "\
-    "t. ! nvoverlaysink"
+    "videotestsrc ! tee name=t "\
+    "t. ! queue ! xvimagesink "\
+    "t. ! queue ! videoconvert name=target ! xvimagesink "
 
 def run():
     GLib.MainLoop().run()
 def callback(pad, info, user_data):
-    return Gst.PadProbeReturn.OK
+    print("entered callback")
+    time.sleep(3)
+    print("probe id:", info.id)
+    pad.remove_probe(info.id)
+    print("sink flushed")
+    return Gst.PadProbeReturn.REMOVE
 
 Gst.init(None)
 pipeline = Gst.parse_launch(pipeline)
-tee = pipeline.get_by_name("t")
-tee_pad = Gst.Element.get_static_pad("src")
+target = pipeline.get_by_name("target")
+target_pad = target.get_static_pad("sink")
+if target_pad is None:
+    print("pad not retrived, exiting"); exit(1)
 pipeline.set_state(Gst.State.PLAYING)
 threading.Thread(target=run).start()
-time.sleep(5)
-tee_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, callback, None)
+print("main loop started")
+time.sleep(3)
+target_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, callback, None)
+print("sink blocked")

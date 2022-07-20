@@ -41,17 +41,74 @@ def extract_buffer(sample: Gst.Sample) -> np.ndarray:
     return np.squeeze(array)  # remove single dimension if exists
 
 
+def _helper_add_many(pipeline, list):
+    try:
+        for element in list:
+            pipeline.add(element)
+    except:
+        print("error when creating element:", element)
+        raise
+
+def _helper_del_many(pipeline, list):
+    for element in list:
+        element.set_state(Gst.State.PAUSED)
+        # pipeline.remove(element)
+
+
 class GSTCamera():
-    def __init__(self, command = DEFAULT_PIPELINE) -> None:
-        self.command = command
+    def __init__(self, test=False) -> None:
+        if test == True:
+            self._test_init()
         self.preview_frame = None
         self.preview_readlock = threading.Lock()
-
         self.read_thread = None
         self.preview_thread = None
         self.capture_thread = None
         self.running = False
         self.FRAME_COUNT = 0
+
+    def _test_init(self):
+        Gst.init(None)
+        self.pipeline = Gst.Pipeline.new("test-pipeline")
+        # create Gst.Element by plugin name 
+        self.src = Gst.ElementFactory.make("videotestsrc") 
+        src_cap = Gst.Caps.from_string("video/x-raw,format=YV12,width=320,height=240,framerate=30/1")
+        self.queue = Gst.ElementFactory.make("queue")
+        # test preview -- init
+        self.convert = Gst.ElementFactory.make("videoconvert")
+        convert_cap = Gst.Caps.from_string("video/x-raw, format=RGB")
+        self.appsink = Gst.ElementFactory.make("appsink")
+        self.appsink.set_property("emit-signals", True) 
+        self.appsink.set_property("drop", True) 
+
+        _helper_add_many(self.pipeline, 
+            [self.src, self.queue, self.convert, self.appsink,])# self.encode, self.filesink])
+        self.src.link_filtered(self.queue, src_cap)
+        # test preview -- link
+        self.queue.link(self.convert)
+        self.convert.link_filtered(self.appsink, convert_cap)
+        print("init finished")
+
+    def start_test(self):
+        if self.running:
+            print('Video capturing is already running')
+            return None
+        
+        # start playing 
+        self.pipeline.set_state(Gst.State.PLAYING)
+        self.loop = GObject.MainLoop()
+        # message handler
+        self.bus = self.pipeline.get_bus()
+        self.bus.add_signal_watch()
+        self.bus.connect('message', self.on_message, self.loop)
+        # start running 
+        self.running = True
+        self.read_thread = threading.Thread(target=self._run_main_loop)
+        self.read_thread.start()
+        print("started thread")
+        self._on_buffer(self.appsink, None)
+        print("First frame pulled")
+        self.appsink.connect("new-sample", self._on_buffer, None)
 
     def start(self):
         if self.running:
@@ -80,7 +137,34 @@ class GSTCamera():
         print("First frame pulled")
         self.preview_sink.connect("new-sample", self._on_buffer, None)
 
-    
+    def capture(self):
+        #self.pipeline.set_state(Gst.State.PAUSED)
+        target_pad = self.queue.get_static_pad("src")
+        target_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, self._block_pad_cb, None)
+
+    def _block_pad_cb(self, pad, info, user_data):
+        self.queue.unlink(self.convert)
+        print("\nunlinked.")
+        self.encode = Gst.ElementFactory.make("jpegenc")
+        self.filesink = Gst.ElementFactory.make("multifilesink")
+        self.filesink.set_property("location", "test.jpg")
+        _helper_add_many(self.pipeline, [self.encode, self.filesink])
+        self.queue.link(self.encode)
+        self.encode.link(self.filesink)
+        self.encode.sync_state_with_parent()
+        self.filesink.sync_state_with_parent()
+
+        # _helper_del_many(self.pipeline, 
+        #     [self.queue, self.convert, self.appsink,])
+        # unblock
+        pad.remove_probe(info.id)
+        print("unblocked.")
+        return Gst.PadProbeReturn.REMOVE
+
+
+
+
+
     def on_message(self, bus: Gst.Bus, message: Gst.Message, loop: GObject.MainLoop):
         mtype = message.type
         if mtype == Gst.MessageType.EOS:
@@ -96,14 +180,12 @@ class GSTCamera():
 
         return True
 
-
     def _run_main_loop(self):
         try:
             self.loop.run()
         except Exception:
             traceback.print_exc()
             self.loop.quit()
-
 
     def _on_buffer(self, sink: GstApp.AppSink, data: typ.Any) -> Gst.FlowReturn:
         """Callback on 'new-sample' signal"""
@@ -114,18 +196,16 @@ class GSTCamera():
             frame = extract_buffer(sample)
             with self.preview_readlock:
                 self.preview_frame = frame
-            #print(f"\Generated {self.FRAME_COUNT}-th {type(preview_frame)} frame with shape {frame.shape} of type {frame.dtype}", end="")
+            print(f"\rGenerated {self.FRAME_COUNT}-th {type(frame)} shape {frame.shape} type {frame.dtype}", end="")
             self.FRAME_COUNT += 1
             return Gst.FlowReturn.OK
         else:
             return Gst.FlowReturn.ERROR
 
-
     def read_preview(self):
         with self.preview_readlock:
             preview_frame = self.preview_frame.copy()
         return preview_frame
-
 
     def stop(self):
         self.running = False
