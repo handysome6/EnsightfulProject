@@ -80,11 +80,18 @@ class GSTCamera():
         self.appsink = Gst.ElementFactory.make("appsink")
         self.appsink.set_property("emit-signals", True) 
         self.appsink.set_property("drop", True) 
+        # test capture -- init
+        self.encode = Gst.ElementFactory.make("jpegenc")
+        self.filesink = Gst.ElementFactory.make("multifilesink")
+        self.filesink.set_property("location", "test.jpg")
+        self.encode.set_state(Gst.State.PLAYING)
+        self.filesink.set_state(Gst.State.PLAYING)
 
         _helper_add_many(self.pipeline, 
             [self.src, self.queue, self.convert, self.appsink,])# self.encode, self.filesink])
-        self.src.link_filtered(self.queue, src_cap)
+        _helper_add_many(self.pipeline, [self.encode, self.filesink])
         # test preview -- link
+        self.src.link_filtered(self.queue, src_cap)
         self.queue.link(self.convert)
         self.convert.link_filtered(self.appsink, convert_cap)
         print("init finished")
@@ -138,25 +145,17 @@ class GSTCamera():
         self.preview_sink.connect("new-sample", self._on_buffer, None)
 
     def capture(self):
-        #self.pipeline.set_state(Gst.State.PAUSED)
         target_pad = self.queue.get_static_pad("src")
         target_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, self._block_pad_cb, None)
 
     def _block_pad_cb(self, pad, info, user_data):
         self.queue.unlink(self.convert)
-        print("\nunlinked.")
-        self.encode = Gst.ElementFactory.make("jpegenc")
-        self.filesink = Gst.ElementFactory.make("multifilesink")
-        self.filesink.set_property("location", "test.jpg")
-        _helper_add_many(self.pipeline, [self.encode, self.filesink])
         self.queue.link(self.encode)
         self.encode.link(self.filesink)
+        print("\nLink switched.")
         self.encode.sync_state_with_parent()
         self.filesink.sync_state_with_parent()
 
-        # _helper_del_many(self.pipeline, 
-        #     [self.queue, self.convert, self.appsink,])
-        # unblock
         pad.remove_probe(info.id)
         print("unblocked.")
         return Gst.PadProbeReturn.REMOVE
