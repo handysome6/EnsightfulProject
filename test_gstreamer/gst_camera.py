@@ -49,11 +49,6 @@ def _helper_add_many(pipeline, list):
         print("error when creating element:", element)
         raise
 
-def _helper_del_many(pipeline, list):
-    for element in list:
-        element.set_state(Gst.State.PAUSED)
-        # pipeline.remove(element)
-
 
 class GSTCamera():
     def __init__(self, test=False) -> None:
@@ -66,6 +61,9 @@ class GSTCamera():
         self.capture_thread = None
         self.running = False
         self.FRAME_COUNT = 0
+        self.capture_frame = None
+        self.SINKPAD_RECEIVED = False
+        self.MODE_PREVIEW = True
 
     def _test_init(self):
         Gst.init(None)
@@ -81,19 +79,19 @@ class GSTCamera():
         self.appsink.set_property("emit-signals", True) 
         self.appsink.set_property("drop", True) 
         # test capture -- init
-        self.encode = Gst.ElementFactory.make("jpegenc")
-        self.filesink = Gst.ElementFactory.make("multifilesink")
-        self.filesink.set_property("location", "test.jpg")
-        self.encode.set_state(Gst.State.PLAYING)
-        self.filesink.set_state(Gst.State.PLAYING)
+        self.convert2 = Gst.ElementFactory.make("videoconvert")
+        self.appsink2 = Gst.ElementFactory.make("appsink")
+        self.appsink2.set_property("emit-signals", True) 
+        self.convert2.set_state(Gst.State.PLAYING)
+        self.appsink2.set_state(Gst.State.PLAYING)
 
         _helper_add_many(self.pipeline, 
-            [self.src, self.queue, self.convert, self.appsink,])# self.encode, self.filesink])
-        _helper_add_many(self.pipeline, [self.encode, self.filesink])
+            [self.src, self.queue, self.convert, self.appsink, self.convert2, self.appsink2])
         # test preview -- link
         self.src.link_filtered(self.queue, src_cap)
         self.queue.link(self.convert)
         self.convert.link_filtered(self.appsink, convert_cap)
+        self.convert2.link_filtered(self.appsink2, convert_cap)
         print("init finished")
 
     def start_test(self):
@@ -107,7 +105,7 @@ class GSTCamera():
         # message handler
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
-        self.bus.connect('message', self.on_message, self.loop)
+        self.bus.connect('message', self._on_message, self.loop)
         # start running 
         self.running = True
         self.read_thread = threading.Thread(target=self._run_main_loop)
@@ -131,7 +129,7 @@ class GSTCamera():
         # message handler
         self.bus = self.pipeline.get_bus()
         self.bus.add_signal_watch()
-        self.bus.connect('message', self.on_message, self.loop)
+        self.bus.connect('message', self._on_message, self.loop)
         # start running 
         self.running = True
         self.read_thread = threading.Thread(target=self._run_main_loop)
@@ -146,25 +144,55 @@ class GSTCamera():
 
     def capture(self):
         target_pad = self.queue.get_static_pad("src")
-        target_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, self._block_pad_cb, None)
+        target_pad.add_probe(Gst.PadProbeType.BLOCK_DOWNSTREAM, self._capture_switch_cb, None)
+        while self.capture_frame is None:
+            time.sleep(.1)
+        return self.capture_frame
 
-    def _block_pad_cb(self, pad, info, user_data):
-        self.queue.unlink(self.convert)
-        self.queue.link(self.encode)
-        self.encode.link(self.filesink)
-        print("\nLink switched.")
-        self.encode.sync_state_with_parent()
-        self.filesink.sync_state_with_parent()
+    def _capture_switch_cb(self, pad, info, user_data):
+        if self.SINKPAD_RECEIVED:
+            # remain block state
+            self._capture_on_buffer(self.appsink2, None)
+            print("\nFirst capture pulled")
+            return Gst.PadProbeReturn.OK
+        else:
+            if self.MODE_PREVIEW == True:
+                # switch mode
+                self.queue.unlink(self.convert)
+                self.queue.link(self.convert2)
+                print("\nMode switched to capture.")
+                self.convert2.sync_state_with_parent()
+                self.appsink2.sync_state_with_parent()
+                self.MODE_PREVIEW = False
+                # add buffer listen probe
+                capture_pad = self.appsink2.get_static_pad("sink")
+                capture_pad.add_probe(Gst.PadProbeType.BUFFER, self._sinkpad_listen_cb, None)
+            # when no buffer received, let buffer pass 
+            return Gst.PadProbeReturn.PASS
 
-        pad.remove_probe(info.id)
-        print("unblocked.")
-        return Gst.PadProbeReturn.REMOVE
+    def _sinkpad_listen_cb(self, pad, info, user_data):
+        print("getting buffer")
+        self.SINKPAD_RECEIVED = True
+        return Gst.PadProbeReturn.OK
+
+    def _capture_on_buffer(self, sink, data):
+        """Callback on 'new-sample' signal"""
+        # Emit 'pull-sample' signal
+        print("pulling")
+        sample = sink.emit("pull-sample")  # Gst.Sample
+        if isinstance(sample, Gst.Sample):
+            self.capture_frame = extract_buffer(sample)
+            print(f"\rCaptured {type(self.capture_frame)} "
+                f"shape {self.capture_frame.shape} "
+                f"type {self.capture_frame.dtype}", end="")
+            return Gst.FlowReturn.OK
+        else:
+            return Gst.FlowReturn.ERROR
 
 
 
 
-
-    def on_message(self, bus: Gst.Bus, message: Gst.Message, loop: GObject.MainLoop):
+    def _on_message(self, bus: Gst.Bus, message: Gst.Message, loop: GObject.MainLoop):
         mtype = message.type
         if mtype == Gst.MessageType.EOS:
             print("End of stream")
