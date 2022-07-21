@@ -6,17 +6,49 @@ from pathlib import Path
 from PIL import Image
 from PIL.ImageQt import ImageQt 
 from PyQt5 import QtCore, QtWidgets, QtGui
-from PyQt5.QtGui import QIcon, QPixmap
-from PyQt5.QtCore import Qt, QSize, QThread
+from PyQt5.QtGui import QIcon, QPixmap, QImage
+from PyQt5.QtCore import Qt, QSize, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import (QWidget, QFileDialog, QGroupBox,
     QPushButton, QComboBox, QLabel, QTextEdit, QLineEdit, 
     QListWidget, QListWidgetItem, QListView, 
     QGridLayout, QVBoxLayout, QHBoxLayout, )
-from numpy import empty
 
 from qt.qt_calibrate import CalibWindow
-# from qt.qt_take_photo import TakePhotoWindow
+from qt.qt_take_photo import TakePhotoWindow
 from qt.qt_view_measure import ViewMeasureWindow
+
+ICON_SIZE = QSize(266,200)
+accepted_types = (".jpg",".tiff",".png",".exr",".psd")
+
+class LoadPhotoThread(QThread):
+    thum_loaded = pyqtSignal(QImage, Path)
+
+    def __init__(self, parent, dir) -> None:
+        """worker thread for loading photo thumbnails
+
+        Args:
+            dir (pathlib.Path): target directory of photos
+        """
+        super().__init__(parent)
+        self.dir = dir
+    
+    def run(self):
+        imgs = list(self.dir.glob("*.jpg"))
+        for img_path in imgs:
+            path = str(img_path)
+            if path.endswith(accepted_types):
+                with Image.open(path) as im:
+                    width, height = im.size
+                    new_width = width // 2
+                    im = im.crop((0,0,new_width, height))
+                    view = im.resize((266,200))
+                    #view = im.transform((266,200), Image.Transform.EXTENT, data=(0,0,new_width, height))
+                    view = view.convert("RGBA")
+                    data = view.tobytes("raw","RGBA")
+                    qim = QtGui.QImage(data, view.size[0], view.size[1], QtGui.QImage.Format_RGBA8888)
+                    
+                    self.thum_loaded.emit(qim, img_path)
+
 
 class ProjectWindow(QWidget):
     def __init__(self):
@@ -57,18 +89,24 @@ class ProjectWindow(QWidget):
         """        
         # create project folder line
         project_folder_label = QLabel("Project folder:")
-        self.project_folder_path = QLineEdit()
+        self.project_folder_container = QLineEdit()
         project_folder_btn = QPushButton("Select")
         # init widgets
-        self.project_folder = list(self.datasets_folder.iterdir())[-1]
-        self.project_folder_path.setText(str(self.project_folder))
-        print("Loaded recent project: " + str(self.project_folder))
-        self.project_folder_path.editingFinished.connect(self._slot_enter_project_folder)
+        if self.datasets_folder.is_dir():
+            try:
+                self.project_folder = list(self.datasets_folder.iterdir())[-1]
+                self.project_folder_container.setText(str(self.project_folder))
+                print("Loaded recent project: " + str(self.project_folder))
+            except:
+                print("No project folder found under ./datasets/")
+        else:
+            print("No datasets folder found. Please put project folder under ./datasets/")
+        self.project_folder_container.editingFinished.connect(self._slot_enter_project_folder)
         project_folder_btn.clicked.connect(self._slot_select_project_folder)
         
         self.project_folder_layout = QHBoxLayout()
         self.project_folder_layout.addWidget(project_folder_label)
-        self.project_folder_layout.addWidget(self.project_folder_path)
+        self.project_folder_layout.addWidget(self.project_folder_container)
         self.project_folder_layout.addWidget(project_folder_btn)
 
         # copyright line
@@ -123,7 +161,8 @@ class ProjectWindow(QWidget):
         
         # init widgets - photo selection
         select_photo_btn.clicked.connect(self._slot_clcik_select_photo)
-        new_photo_btn.setEnabled(False)
+        # new_photo_btn.setEnabled(False)
+        new_photo_btn.clicked.connect(self._slot_open_take_photo_window)
         self.recent_photo_region.itemClicked.connect(self._slot_select_photo_list)
         self.recent_photo_region.setViewMode(QListWidget.IconMode)
         self.recent_photo_region.setResizeMode(QListWidget.Adjust)
@@ -155,9 +194,11 @@ class ProjectWindow(QWidget):
         # add camera model under {folder} to model menu
         self.camera_model_combo.clear()
         icon = QIcon("qt/cam_model_icon.png")
-        model_folder = self.project_folder / 'camera_model'
-        assert model_folder.is_dir(), "Camera model folder doesn't exist."
-        self.models['project'] = list(model_folder.glob('*.npz'))
+        try:
+            model_folder = self.project_folder / 'camera_model'
+            self.models['project'] = list(model_folder.glob('*.npz'))
+        except:
+            print("Camera model folder doesn't exist ./datasets/PROJECT_FOLDER/camera_model/")
         all_models = self.models['project'] + self.models['extra']
         for model in all_models:
             self.camera_model_combo.addItem(icon, str(model))
@@ -166,46 +207,33 @@ class ProjectWindow(QWidget):
             self.camera_model_combo.setCurrentIndex(len(all_models)-1)
             self.current_model = all_models[-1]
             print("Loaded recent cam model: " + str(self.current_model))
-        except: pass
+        except: 
+            print("No camera model found under ./datasets/PROJECT_FOLDER/camera_model/")
         
     def _load_recent_photo_list(self):
         """multithread load all images under {folder} to list
         """
         self.recent_photo_region.clear()
-        test_folder = self.project_folder / 'test'
-        imgs = list(test_folder.glob("*.jpg"))
-        for img_path in imgs:
-            path = str(img_path)
-            with Image.open(path) as im:
-                width, height = im.size
-                new_width = width // 2
-                view = im.transform((266,200), Image.Transform.EXTENT, data=(0,0,new_width, height))
-                view = view.convert("RGBA")
-                data = view.tobytes("raw","RGBA")
-                qim = QtGui.QImage(data, view.size[0], view.size[1], QtGui.QImage.Format_RGBA8888)
-                icon = QIcon(QPixmap(qim))
-                # icon = QIcon("qt/cam_model_icon.png")
-                item = QListWidgetItem(icon, img_path.name, self.recent_photo_region)
-                # attach data to the list item
-                item.setData(Qt.UserRole, img_path)
-                self.recent_photo_region.addItem(item)
+        try:
+            test_folder = self.project_folder / 'test'
+            load_photo_thread = LoadPhotoThread(self, test_folder)
+            load_photo_thread.thum_loaded.connect(self._slot_load_single_photo_thum)
+            load_photo_thread.start()
+        except: pass
 
-    def _insert_images(self, future):
-        """hand returned future object
 
-        Args:
-            future (Future): Future object contains transformed Icons
-        """        
-        # fetch result from future object
-        icon, img_path = future.result()
-        item = QListWidgetItem(icon, img_path.name)
+    @pyqtSlot(QImage, Path)
+    def _slot_load_single_photo_thum(self, qim, img_path):
+        icon = QIcon(QPixmap(qim))
+        # generate list item
+        item = QListWidgetItem(icon, img_path.name, self.recent_photo_region)
         # attach data to the list item
         item.setData(Qt.UserRole, img_path)
         self.recent_photo_region.addItem(item)
 
-
+    @pyqtSlot()
     def _slot_enter_project_folder(self):
-        self.project_folder = Path(self.project_folder_path.text())
+        self.project_folder = Path(self.project_folder_container.text())
         assert self.project_folder.is_dir(), "Project folder path incorrect"
         print("Selected project folder: " + str(self.project_folder))
         self._load_camera_model_combo()
@@ -216,13 +244,9 @@ class ProjectWindow(QWidget):
         if str_path != '':
             self.project_folder = Path(str_path).relative_to(Path('.').resolve())
             print("Selected project folder: " + str(self.project_folder))
-            self.project_folder_path.setText(str(self.project_folder))
+            self.project_folder_container.setText(str(self.project_folder))
             self._load_camera_model_combo()
             self._load_recent_photo_list()
-
-    def _slot_open_calib_window(self):
-        self.calib_window = CalibWindow(parent=self)
-        self.calib_window.show()
 
     def _slot_select_camera_combo(self, index):
         all_models = self.models['project'] + self.models['extra']
@@ -249,6 +273,10 @@ class ProjectWindow(QWidget):
         self.selected_photo_path.setText(str(current_image))
         print("Selected image: " + str(current_image))
 
+    def _slot_open_calib_window(self):
+        self.calib_window = CalibWindow(parent=self)
+        self.calib_window.show()
+
     def _slot_open_view_measure_window(self):
         assert self.current_model.is_file()
         current_image = Path(self.selected_photo_path.text())
@@ -258,6 +286,11 @@ class ProjectWindow(QWidget):
             self.current_model, current_image, self.project_folder,
             parent=self)
         # self.view_measure_window.show()
+
+    def _slot_open_take_photo_window(self):
+        self.take_photo_window = TakePhotoWindow(self)
+        self.take_photo_window.show()
+
 
 
 

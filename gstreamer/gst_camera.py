@@ -15,14 +15,6 @@ gi.require_version('GstVideo', '1.0')
 from gi.repository import GObject, Gst, GLib, GstApp, GstVideo
 
 
-DEFAULT_PIPELINE = \
-    "nvarguscamerasrc ! "\
-    "video/x-raw(memory:NVMM), width=(int)3840, height=(int)2160, framerate=(fraction)30/1 ! "\
-    "nvvidconv flip-method=0 ! video/x-raw, width=(int)1280, height=(int)720, format=(string)BGRx ! "\
-    "videoconvert ! video/x-raw, format=(string)RGB ! "\
-    "appsink name=preview emit-signals=True"
-
-
 def extract_buffer(sample: Gst.Sample) -> np.ndarray:
     """Extracts Gst.Buffer from Gst.Sample and converts to np.ndarray"""
 
@@ -40,7 +32,6 @@ def extract_buffer(sample: Gst.Sample) -> np.ndarray:
 
     return np.squeeze(array)  # remove single dimension if exists
 
-
 def _helper_add_many(pipeline, list):
     try:
         for element in list:
@@ -51,7 +42,11 @@ def _helper_add_many(pipeline, list):
 
 
 class GSTCamera():
-    def __init__(self) -> None:
+    def __init__(self, sensor_id=0, test_mode=False) -> None:
+        if test_mode:
+            self._init_pipeline_test()
+        else:
+            self._init_pipeline(sensor_id)
         self.preview_frame = None
         self.preview_readlock = threading.Lock()
         self.read_thread = None
@@ -96,11 +91,12 @@ class GSTCamera():
         self.convert2.link_filtered(self.appsink2, convert_cap)
         print("init finished")
 
-    def _init_pipeline(self):
+    def _init_pipeline(self, sensor_id):
         Gst.init(None)
         self.pipeline = Gst.Pipeline.new("pipeline")
         # create Gst.Element by plugin name 
         self.src = Gst.ElementFactory.make("nvarguscamerasrc") 
+        self.src.set_property("sensor-id", sensor_id)
         src_cap = Gst.Caps.from_string("video/x-raw(memory:NVMM), "
             "width=3840, height=2160, framerate=30/1"
         )
@@ -138,32 +134,10 @@ class GSTCamera():
         print("init finished")
 
 
-    def start_test(self):
-        if self.running:
-            print('Video capturing is already running')
-            return None
-        self._init_pipeline_test()
-
-        # start playing 
-        self.pipeline.set_state(Gst.State.PLAYING)
-        self.loop = GObject.MainLoop()
-        # message handler
-        self.bus = self.pipeline.get_bus()
-        self.bus.add_signal_watch()
-        self.bus.connect('message', self._on_message, self.loop)
-        # start running 
-        self.running = True
-        self.read_thread = threading.Thread(target=self._run_main_loop)
-        self.read_thread.start()
-        self._on_buffer(self.appsink, None)
-        print("\nFirst frame pulled")
-        self.appsink.connect("new-sample", self._on_buffer, None)
-
     def start(self):
         if self.running:
             print('Video capturing is already running')
             return None
-        self._init_pipeline()
 
         # start playing 
         self.pipeline.set_state(Gst.State.PLAYING)
@@ -292,7 +266,7 @@ class GSTCamera():
 
 
 if __name__ == "__main__":
-    camera = GSTCamera(DEFAULT_PIPELINE)
+    camera = GSTCamera()
     camera.start()
 
     #time.sleep(1)
