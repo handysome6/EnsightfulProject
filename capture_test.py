@@ -1,10 +1,10 @@
-from test_gstreamer.gst_camera import GSTCamera
+from gstreamer.gst_camera import GSTCamera
 import time
 
-cam = GSTCamera(test=True)
-cam.start_test()
+cam = GSTCamera()
+cam.start()
 time.sleep(1)
 cam.capture()
-# time.sleep(2)
-# cam.stop()
+time.sleep(2)
+cam.stop()
 #exit()
