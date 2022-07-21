@@ -14,6 +14,8 @@ gi.require_version('GstApp', '1.0')
 gi.require_version('GstVideo', '1.0')
 from gi.repository import GObject, Gst, GLib, GstApp, GstVideo
 
+RESOLUTION = (3040, 4032)
+#RESOLUTION = (2160, 3840)
 
 def extract_buffer(sample: Gst.Sample) -> np.ndarray:
     """Extracts Gst.Buffer from Gst.Sample and converts to np.ndarray"""
@@ -46,7 +48,11 @@ class GSTCamera():
         if test_mode:
             self._init_pipeline_test()
         else:
-            self._init_pipeline(sensor_id)
+            if sensor_id==0:
+                self._init_pipeline(sensor_id)
+            else:
+                self._init_pipeline_fake(sensor_id)
+        self.sensor_id = sensor_id
         self.preview_frame = None
         self.preview_readlock = threading.Lock()
         self.read_thread = None
@@ -98,17 +104,18 @@ class GSTCamera():
         self.src = Gst.ElementFactory.make("nvarguscamerasrc") 
         self.src.set_property("sensor-id", sensor_id)
         src_cap = Gst.Caps.from_string("video/x-raw(memory:NVMM), "
-            "width=3840, height=2160, framerate=30/1"
+            f"width={RESOLUTION[1]}, height={RESOLUTION[0]}, framerate=30/1"
         )
         self.queue = Gst.ElementFactory.make("queue")
         # preview -- init element
         self.convert = Gst.ElementFactory.make("nvvidconv")
         self.convert.set_property("flip-method", 0)
-        convert_cap = Gst.Caps.from_string("video/x-raw, width=1280, height=720, format=BGRx")
+        convert_cap = Gst.Caps.from_string(f"video/x-raw, width={RESOLUTION[1]//6}, height={RESOLUTION[0]//6}, format=BGRx")
         rgb_convert = Gst.ElementFactory.make("videoconvert")
         rgb_cap = Gst.Caps.from_string("video/x-raw, format=RGB")
         self.appsink = Gst.ElementFactory.make("appsink")
         self.appsink.set_property("emit-signals", True)
+        self.appsink.set_property("drop", True)
         # capture -- init element
         self.convert2 = Gst.ElementFactory.make("nvvidconv")
         capture_convert_cap = Gst.Caps.from_string("video/x-raw, format=BGRx")
@@ -133,6 +140,40 @@ class GSTCamera():
         rgb_convert2.link_filtered(self.appsink2, rgb_cap)
         print("init finished")
 
+    def _init_pipeline_fake(self, sensor_id):
+        Gst.init(None)
+        self.pipeline = Gst.Pipeline.new("pipeline")
+        # create Gst.Element by plugin name 
+        self.src = Gst.ElementFactory.make("nvarguscamerasrc") 
+        self.src.set_property("sensor-id", sensor_id)
+        src_cap = Gst.Caps.from_string("video/x-raw(memory:NVMM), "
+            f"width={RESOLUTION[1]}, height={RESOLUTION[0]}, framerate=30/1"
+        )
+        self.queue = Gst.ElementFactory.make("queue")
+        # preview -- init element
+        self.convert = Gst.ElementFactory.make("fakesink")
+        # capture -- init element
+        self.convert2 = Gst.ElementFactory.make("nvvidconv")
+        capture_convert_cap = Gst.Caps.from_string("video/x-raw, format=BGRx")
+        rgb_convert2 = Gst.ElementFactory.make("videoconvert")
+        rgb_cap = Gst.Caps.from_string("video/x-raw, format=RGB")
+        self.appsink2 = Gst.ElementFactory.make("appsink")
+        self.convert2.set_state(Gst.State.PLAYING)
+        rgb_convert2.set_state(Gst.State.PLAYING)
+        self.appsink2.set_state(Gst.State.PLAYING)
+
+        _helper_add_many(self.pipeline, 
+            [self.src, self.queue,                          # src
+            self.convert,        # preview
+            self.convert2, rgb_convert2, self.appsink2]     # capture
+        )
+        # preview -- link element
+        self.src.link_filtered(self.queue, src_cap)
+        self.queue.link(self.convert)
+        # capture -- link element
+        self.convert2.link_filtered(rgb_convert2, capture_convert_cap)
+        rgb_convert2.link_filtered(self.appsink2, rgb_cap)
+        print("fake init finished")
 
     def start(self):
         if self.running:
@@ -152,8 +193,9 @@ class GSTCamera():
         self.read_thread.start()
 
         # pull first frame to avoid reading empty frame
-        self._on_buffer(self.appsink, None)
-        self.appsink.connect("new-sample", self._on_buffer, None)
+        if self.sensor_id != 1:
+            self._on_buffer(self.appsink, None)
+            self.appsink.connect("new-sample", self._on_buffer, None)
 
 
     def capture(self):
@@ -233,7 +275,7 @@ class GSTCamera():
             frame = extract_buffer(sample)
             with self.preview_readlock:
                 self.preview_frame = frame
-            # print(f"\rGenerated {self.FRAME_COUNT}-th {type(frame)} shape {frame.shape} type {frame.dtype}", end="")
+            #print(f"\rGenerated {self.FRAME_COUNT}-th {type(frame)} shape {frame.shape} type {frame.dtype}", end="")
             self.FRAME_COUNT += 1
             return Gst.FlowReturn.OK
         else:

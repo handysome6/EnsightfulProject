@@ -124,18 +124,19 @@ def gstreamer_pipeline(
         )
     )
 
-
+width = 4032
+height = 3040
 def run_cameras():
     window_title = "Dual CSI Cameras"
     left_camera = CSI_Camera()
     left_camera.open(
         gstreamer_pipeline(
             sensor_id=0,
-            capture_width=1920,
-            capture_height=1080,
+            capture_width=width,
+            capture_height=height,
             flip_method=0,
-            display_width=960,
-            display_height=540,
+            display_width=width//6,
+            display_height=height//6,
         )
     )
     left_camera.start()
@@ -144,11 +145,11 @@ def run_cameras():
     right_camera.open(
         gstreamer_pipeline(
             sensor_id=1,
-            capture_width=1920,
-            capture_height=1080,
+            capture_width=width,
+            capture_height=height,
             flip_method=0,
-            display_width=960,
-            display_height=540,
+            display_width=width//6,
+            display_height=height//6,
         )
     )
     right_camera.start()

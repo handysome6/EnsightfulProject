@@ -6,6 +6,7 @@ from PyQt5 import QtCore, QtWidgets, QtGui
 import cv2
 import numpy as np
 from gstreamer.gst_camera import GSTCamera
+import time
 
 class TakePhotoWindow(QWidget):
     def __init__(self, parent=None):
@@ -42,6 +43,8 @@ class TakePhotoWindow(QWidget):
         self.timeline.setUpdateInterval(int(1000/30))
         self.timeline.frameChanged.connect(self._slot_update_frame)
         self.timeline.start()
+        #time.sleep(1)
+        #img_0 = self.camera_0.capture()
 
     def _slot_update_frame(self):
         frame = self.camera_0.read_preview()
