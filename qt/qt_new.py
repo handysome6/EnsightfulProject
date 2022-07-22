@@ -248,6 +248,10 @@ class ProjectWindow(QWidget):
             self._load_camera_model_combo()
             self._load_recent_photo_list()
 
+    def _slot_open_calib_window(self):
+        self.calib_window = CalibWindow(self.project_folder, parent=self)
+        self.calib_window.show()
+
     def _slot_select_camera_combo(self, index):
         all_models = self.models['project'] + self.models['extra']
         self.current_model = all_models[index]
@@ -273,9 +277,9 @@ class ProjectWindow(QWidget):
         self.selected_photo_path.setText(str(current_image))
         print("Selected image: " + str(current_image))
 
-    def _slot_open_calib_window(self):
-        self.calib_window = CalibWindow(parent=self)
-        self.calib_window.show()
+    # def _slot_open_calib_window(self):
+    #     self.calib_window = CalibWindow(parent=self)
+    #     self.calib_window.show()
 
     def _slot_open_view_measure_window(self):
         assert self.current_model.is_file()

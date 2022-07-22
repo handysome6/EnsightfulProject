@@ -1,13 +1,25 @@
 import sys
+import logging
+from pathlib import Path
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QWidget, QGroupBox, QGridLayout, QVBoxLayout
-from PyQt5.QtWidgets import QLabel, QPushButton, QLineEdit, QCheckBox
+from PyQt5.QtWidgets import QLabel, QPushButton, QLineEdit, QCheckBox, QFileDialog
 from PyQt5 import QtCore, QtWidgets, QtGui
+from model.camera_model import CameraModel
+from calib.preprocess import Preprocess
+from calib.calibration import Calibrate
+from calib.rectification import StereoRectify
+
+
 
 class CalibWindow(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, project_folder, parent=None):
         super().__init__()
         self.setWindowTitle("Calibrate camera")
+
+        self.project_folder = project_folder
+        self.dual_folder = None
+
         self._calib_single_camera_group_box()
         self._calib_dual_camera_group_box()
         self._start_calib_config_group_box()
@@ -55,15 +67,16 @@ class CalibWindow(QWidget):
         self.dual_group_box = QGroupBox("Dual Camera Calibration")
         # dual
         dual_label = QLabel("Calib dual camera path:")
-        dual_path = QLineEdit()
+        self.dual_path = QLineEdit()
         dual_btn = QPushButton("...")
-        # checker: Fix intrinsic
         fix_intrinsic_label = QLabel("Fix intrinsic params when dual calibration:")
         fix_intrinsic_checker = QCheckBox()
+        # init
+        dual_btn.clicked.connect(self._slot_select_dual_folder)
 
         layout = QGridLayout()
         layout.addWidget(dual_label,  0,0)
-        layout.addWidget(dual_path,   0,1)
+        layout.addWidget(self.dual_path,   0,1)
         layout.addWidget(dual_btn,    0,2)
         layout.addWidget(fix_intrinsic_label, 1,0,1,2)
         layout.addWidget(fix_intrinsic_checker, 1,2, alignment=Qt.AlignCenter)
@@ -81,6 +94,9 @@ class CalibWindow(QWidget):
         fisheye_checker = QCheckBox()
         # start button
         start_calib_btn = QPushButton("Start Calibration")
+
+        # init
+        start_calib_btn.clicked.connect(self._slot_start_calibration)
 
         layout = QGridLayout()
         layout.addWidget(model_save_label, 0,0)
@@ -109,6 +125,36 @@ class CalibWindow(QWidget):
             self.single_right_label.setEnabled(False)
             self.single_right_path.setEnabled(False)
             self.single_right_btn.setEnabled(False)
+
+    def _slot_select_dual_folder(self):
+        str_path = QFileDialog.getExistingDirectory(self, "Select project folder...", str(self.project_folder))
+        if str_path != '':
+            self.dual_folder = Path(str_path).relative_to(Path('.').resolve())
+            print("Selected dual folder: " + str(self.dual_folder))
+            self.dual_path.setText(str(self.dual_folder))
+
+    def _slot_start_calibration(self):
+        # camera info
+        CCD = 'IMX477'
+        fisheye = False
+        camera = CameraModel(CCD, fisheye)
+        preprocess = Preprocess(camera, self.project_folder)
+        data_path = self.project_folder / "calibration_data"
+        preprocess.preprocess_sbs()
+        print()
+
+        calibration = Calibrate(camera, self.project_folder)
+        calibration.calibrate_left_right()
+        calibration.stereo_calibrate(fix_intrinsic = False)
+        print()
+
+        # camera_path = self.project_folder / 'camera_model'
+        # model_path = camera_path / "camera_model.npz"
+        # camera = CameraModel.load_model(model_path)
+        rectifier = StereoRectify(camera, self.project_folder)
+        rectifier.rectify_camera(roi_ratio=0, new_image_ratio=1)
+        rectifier.rectify_samples()
+        print()
 
 
 if __name__ == "__main__":
