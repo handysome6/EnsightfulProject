@@ -35,9 +35,9 @@ class Ruler():
         world_coord1 = Ruler.get_world_coord_Q(Q, point1[0], point1[1])
         world_coord2 = Ruler.get_world_coord_Q(Q, point2[0], point2[1])
 
-        segment_len = cv2.norm(world_coord1, world_coord2)
+        self.segment_len = cv2.norm(world_coord1, world_coord2)
 
-        return segment_len
+        return self.segment_len
 
 
     def click_segment(self, automatch=True, matcher = MATCHER_TYPE.VGG):
@@ -113,6 +113,20 @@ class Ruler():
             # elif k == ord('a'):
             #     print(self.mouseX, self.mouseY)
 
+
+
+    def show_result(self):
+        point1, point2 = self.endpoints[-2:]
+        point1 = point1[0].astype(np.int32)
+        point2 = point2[0].astype(np.int32)
+
+        line_thickness = 8
+        show_img = self.left_img.copy()
+        cv2.line(show_img, point1, point2, (0,255,0), thickness=line_thickness)
+        cv2.putText(show_img, f"Length of segment: {self.segment_len:.2f}mm", 
+            (0,100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0,255,0), 3)
+
+        imshow('Image Result', show_img)
 
 
 

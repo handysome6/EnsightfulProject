@@ -34,5 +34,5 @@ class ViewMeasureWindow(QWidget):
         len = ruler.measure_segment()
         print(len)
 
-        ruler.show_endpoints()
+        ruler.show_result()
 
