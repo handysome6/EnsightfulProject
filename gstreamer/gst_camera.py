@@ -11,8 +11,7 @@ from PIL import Image
 import gi
 gi.require_version('Gst', '1.0')
 gi.require_version('GstApp', '1.0')
-gi.require_version('GstVideo', '1.0')
-from gi.repository import GObject, Gst, GLib, GstApp, GstVideo
+from gi.repository import GObject, Gst, GLib, GstApp
 
 RESOLUTION = (3040, 4032)
 #RESOLUTION = (2160, 3840)
