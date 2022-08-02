@@ -55,11 +55,12 @@ class GSTCamera():
 
     def _init_pipeline_test(self):
         Gst.init(None)
-        test_pipeline = f"videotestsrc ! \
-video/x-raw, width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=I420, framerate=30/1 ! tee name=t \
-t. ! queue name=capture_src ! videoconvert ! video/x-raw, format=BGR ! \
+        test_pipeline = f"nvarguscamerasrc ! \
+video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=30/1 ! \
+tee name=t \
+t. ! queue name=capture_src ! nvvidconv ! video/x-raw(memory:NVMM), format=BGRx ! \
 appsink name=capture_sink emit-signals=1 \
-t. ! queue ! videoscale ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4}  ! \
+t. ! queue ! nvvidconv ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4}  ! \
 videoconvert ! video/x-raw, format=BGR ! \
 appsink name=preview_sink emit-signals=1"
         print(test_pipeline)
@@ -88,7 +89,7 @@ appsink name=preview_sink emit-signals=1"
         self.read_thread.start()
 
         # block capture stream
-        self.capture_block_pad = self.capture_src.get_static_pad("sink")
+        self.capture_block_pad = self.capture_src.get_static_pad("src")
         self.capture_block_probe_id = self.capture_block_pad.add_probe(
             Gst.PadProbeType.ALL_BOTH,      # block upstream and downstream, else stuck
             self._wait_capture_cb,          # block callback
