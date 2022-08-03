@@ -27,6 +27,7 @@ def extract_buffer(sample: Gst.Sample) -> np.ndarray:
 
     buffer_size = buffer.get_size()
     shape = (h, w, c) if (h * w * c == buffer_size) else buffer_size
+    # print(shape)
     array = np.ndarray(shape=shape, buffer=buffer.extract_dup(0, buffer_size),
                        dtype=np.uint8)
 
@@ -58,14 +59,16 @@ class GSTCamera():
         test_pipeline = f"nvarguscamerasrc ! \
 video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=30/1 ! \
 tee name=t \
-t. ! queue name=capture_src ! nvvidconv ! video/x-raw(memory:NVMM), format=BGRx ! \
-appsink name=capture_sink emit-signals=1 \
-t. ! queue ! nvvidconv ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4}  ! \
+t. ! queue ! valve drop=1 name=capture_valve ! \
+nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw,format=RGB ! \
+appsink name=capture_sink async=false emit-signals=1 \
+t. ! queue ! nvtee ! \
+nvvidconv ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4}  ! \
 videoconvert ! video/x-raw, format=BGR ! \
 appsink name=preview_sink emit-signals=1"
         print(test_pipeline)
         self.pipeline = Gst.parse_launch(test_pipeline)
-        self.capture_src = self.pipeline.get_by_name("capture_src")
+        self.capture_valve = self.pipeline.get_by_name("capture_valve")
         self.capture_sink = self.pipeline.get_by_name("capture_sink")
         self.preview_sink = self.pipeline.get_by_name("preview_sink")
         # message handler
@@ -88,32 +91,17 @@ appsink name=preview_sink emit-signals=1"
         self.read_thread = threading.Thread(target=self._run_main_loop)
         self.read_thread.start()
 
-        # block capture stream
-        self.capture_block_pad = self.capture_src.get_static_pad("src")
-        self.capture_block_probe_id = self.capture_block_pad.add_probe(
-            Gst.PadProbeType.ALL_BOTH,      # block upstream and downstream, else stuck
-            self._wait_capture_cb,          # block callback
-            None                            # userdata
-        )
-
         # pull first frame to avoid reading empty frame
         if self.sensor_id != 1:
             self._on_buffer(self.preview_sink, None)
             self.preview_sink.connect("new-sample", self._on_buffer, None)
 
     def capture(self):
-        self.MODE_CAPTURE = True
-        self._capture_on_buffer(self.capture_sink, None)
-        self.MODE_CAPTURE = False
-
-    def _wait_capture_cb(self, pad, info, user_data):
-        """block probe callback, pass when mode_capture is set
-        """        
-        if self.MODE_CAPTURE:
-            print("passing capture buffer")
-            return Gst.PadProbeReturn.PASS
-        else:
-            return Gst.PadProbeReturn.OK
+        print("\n\n", self.capture_valve.get_property("drop"))
+        self.capture_valve.set_property("drop", False)
+        print(self.capture_valve.get_property("drop"))
+        capture_pad = self.capture_sink.get_static_pad("sink")
+        self.capture_sink.connect("new-sample", self._capture_on_buffer, None)
 
     def _capture_on_buffer(self, sink, data):
         """Callback on 'new-sample' signal"""
@@ -124,11 +112,11 @@ appsink name=preview_sink emit-signals=1"
             print(f"\n>>> Captured {type(self.capture_frame)} "
                 f"shape {self.capture_frame.shape} "
                 f"type {self.capture_frame.dtype} <<<")
+            # Once fetched a frame, turn down the valve
+            self.capture_valve.set_property("drop", True)
             return Gst.FlowReturn.OK
         else:
             return Gst.FlowReturn.ERROR
-
-
 
     def _on_message(self, bus: Gst.Bus, message: Gst.Message):
         mtype = message.type
