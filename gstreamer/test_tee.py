@@ -95,23 +95,23 @@ appsink name=preview_sink emit-signals=1"
         if self.sensor_id != 1:
             self._on_buffer(self.preview_sink, None)
             self.preview_sink.connect("new-sample", self._on_buffer, None)
-
-    def capture(self):
-        print("\n\n", self.capture_valve.get_property("drop"))
-        self.capture_valve.set_property("drop", False)
-        print(self.capture_valve.get_property("drop"))
-        capture_pad = self.capture_sink.get_static_pad("sink")
+        # add 
         self.capture_sink.connect("new-sample", self._capture_on_buffer, None)
 
+    def capture(self):
+        """open the valve, let buffer flow over"""
+        self.capture_valve.set_property("drop", False)
+        
+
     def _capture_on_buffer(self, sink, data):
-        """Callback on 'new-sample' signal"""
+        """Callback serving capture function"""
         # Emit 'pull-sample' signal
         sample = sink.emit("pull-sample")  # Gst.Sample
         if isinstance(sample, Gst.Sample):
             self.capture_frame = extract_buffer(sample)
-            print(f"\n>>> Captured {type(self.capture_frame)} "
+            print(f"\n\n>>> Captured {type(self.capture_frame)} "
                 f"shape {self.capture_frame.shape} "
-                f"type {self.capture_frame.dtype} <<<")
+                f"type {self.capture_frame.dtype} <<<\n\n")
             # Once fetched a frame, turn down the valve
             self.capture_valve.set_property("drop", True)
             return Gst.FlowReturn.OK
@@ -178,4 +178,6 @@ if __name__=="__main__":
     time.sleep(1)
     camera.capture()
     time.sleep(3)
+    camera.capture()
+    time.sleep(1)
     camera.stop()
