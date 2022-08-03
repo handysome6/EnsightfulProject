@@ -1,14 +1,12 @@
 import numpy as np
 from pathlib import Path
-from model.ccd_model import CCD
 
 class CameraModel():
-    def __init__(self, CCD_type, is_fisheye) -> None:
+    def __init__(self, image_size, is_fisheye) -> None:
         """
         Create camera model from init state.
         """
-        self.CCD = CCD(CCD_type)
-        self.image_size = self.CCD.image_size
+        self.image_size = image_size
         self.is_fisheye = is_fisheye
 
         # init params
@@ -113,7 +111,7 @@ class CameraModel():
         # mkdir if folder not exist
         npz_path.parent.mkdir(parents=True, exist_ok=True)
         np.savez(npz_path,
-            CCD_type = self.CCD.type,
+            image_size = self.image_size,
             is_fisheye = self.is_fisheye,
             cm1 = self.cm1, 
             cd1 = self.cd1, 
@@ -133,7 +131,6 @@ class CameraModel():
         """
         Camera info"""
         str = f"""
-CCD_type = {self.CCD_type}
 image_size = {self.image_size}
 is_fisheye = {self.is_fisheye}
 cm1: \n {self.cm1}

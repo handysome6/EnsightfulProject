@@ -121,7 +121,7 @@ Camera Distortion: \n{cd2}''')
         rms, cm, cd, rvecs, tvecs, _, _, perViewErrors = cv2.calibrateCameraExtended(
                 obj_points, img_points, 
                 self.camera.image_size, cm, None,
-                flags=flags,
+                # flags=flags,
                 criteria=calib_criteria
             )
         print("\t Done!")
@@ -202,8 +202,9 @@ Distortion Coefficient:\n{cd1}
 ----------Right Cam---------
 K (Intrinsic Params): \n{cm2}
 Distortion Coefficient:\n{cd2}''')
-        print(f"""Fixing intrinsic params.
-------Extrinsic Params------
+        else:
+            print(f"Fixing intrinsic params.")
+        print(f"""------Extrinsic Params------
 R: \n{R}
 T: \n{T}""")
         info("Calibrate stereo camera done.")

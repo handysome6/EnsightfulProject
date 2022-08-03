@@ -27,24 +27,28 @@ rootLogger.addHandler(consoleHandler)
 
 
 # camera info
-CCD = 'IMX477'
-fisheye = False
+image_size = (4056, 3040)       # Raspi  IMX477
+image_size = (4032, 3040)       # Jetson IMX477
+is_fisheye = False
 
 # Hyperparams
-folder_name = "0703_IMX477_6mm_newCalib"
+folder_name = "0801_8mm_IMX477_jetson"
+# folder_name = "0803_8mm_IMX477_jetson"
 operation_folder = Path("datasets") / folder_name
-rows = 8
-columns = 11
+rows = 11
+columns = 8
 CHECKERBOARD = (rows,columns)
 square_size = 25
 
-camera = CameraModel(CCD, fisheye)
-preprocess = Preprocess(camera, operation_folder)
+camera = CameraModel(image_size, is_fisheye)
+preprocess = Preprocess(camera, operation_folder,
+    CHECKERBOARD=CHECKERBOARD, square_size=square_size)
 data_path = operation_folder / "calibration_data"
 preprocess.preprocess_sbs()
 print()
 
-calibration = Calibrate(camera, operation_folder)
+calibration = Calibrate(camera, operation_folder,
+    CHECKERBOARD=CHECKERBOARD, square_size=square_size)
 calibration.calibrate_left_right()
 calibration.stereo_calibrate(fix_intrinsic = False)
 print()
@@ -52,7 +56,7 @@ print()
 # camera_path = operation_folder / 'camera_model'
 # model_path = camera_path / "camera_model.npz"
 # camera = CameraModel.load_model(model_path)
-rectifier = StereoRectify(camera, operation_folder)
-rectifier.rectify_camera(roi_ratio=0, new_image_ratio=1)
-rectifier.rectify_samples()
+# rectifier = StereoRectify(camera, operation_folder)
+# rectifier.rectify_camera(roi_ratio=0, new_image_ratio=1)
+# rectifier.rectify_samples()
 print()
