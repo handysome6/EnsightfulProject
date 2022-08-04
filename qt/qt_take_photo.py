@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy, QPushButton, QGridLayo
 from PyQt5 import QtCore, QtWidgets, QtGui
 import cv2
 import numpy as np
-from gstreamer.gst_camera import GSTCamera
+from gstreamer.new_gst_camera import GSTCamera
 import time
 
 class TakePhotoWindow(QWidget):
@@ -61,9 +61,9 @@ class TakePhotoWindow(QWidget):
     def _slot_capture_hd(self):
         img_0 = self.camera_0.capture()
         img_1 = self.camera_1.capture()
-        img_sbs = np.concatenate([img_0, img_1], axis=1)
-        cv2.imwrite("sbs_00.jpg", img_sbs)
-        self.close()
+        # img_sbs = np.concatenate([img_0, img_1], axis=1)
+        # cv2.imwrite("sbs_00.jpg", img_sbs)
+        # self.close()
 
     def closeEvent(self, event):
         print("Exiting take photo window...")
