@@ -10,8 +10,7 @@ from PIL import Image
 
 import gi
 gi.require_version('Gst', '1.0')
-gi.require_version('GstApp', '1.0')
-from gi.repository import GObject, Gst, GLib, GstApp
+from gi.repository import Gst, GLib
 
 RESOLUTION = (4032, 3040)
 
@@ -164,7 +163,7 @@ t. ! queue ! \
 
         return True
 
-    def _on_buffer(self, sink: GstApp.AppSink, data: typ.Any) -> Gst.FlowReturn:
+    def _on_buffer(self, sink, data: typ.Any) -> Gst.FlowReturn:
         """Callback on 'new-sample' signal"""
         # Emit 'pull-sample' signal
         # print("ok")
