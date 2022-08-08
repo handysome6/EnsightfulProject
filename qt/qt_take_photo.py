@@ -1,5 +1,5 @@
 import sys
-from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtGui import QImage, QPixmap, QPainter
 from PyQt5.QtCore import Qt, QTimeLine
 from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy, QPushButton, QGridLayout
 from PyQt5 import QtCore, QtWidgets, QtGui
@@ -7,6 +7,25 @@ import cv2
 import numpy as np
 from gstreamer.new_gst_camera import GSTCamera
 import time
+
+
+class ImageDisplay(QWidget):
+    def __init__(self, parent=None):
+        super().__init__()
+        self.m_image = None
+        #self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+    
+    def setImage(self, qimage):
+        self.m_image = qimage
+        self.repaint()
+
+    def paintEvent(self, paint_event):
+        if self.m_image == None:
+            print("no qimg exist")
+            return
+        qp = QPainter(self)
+        qp.drawImage(self.rect(), self.m_image, self.m_image.rect())
+
 
 class TakePhotoWindow(QWidget):
     def __init__(self, parent=None):
@@ -16,26 +35,25 @@ class TakePhotoWindow(QWidget):
         self._init_camera()
         self._init_timeline()
         self.FRAME_COUNT = 0
+        self.showMaximized()
 
     def _init_region(self):
-        self.preview_label = QLabel()
+        self.preview_display = ImageDisplay()
         self.stop_btn = QPushButton("Stop")
         self.capture_btn = QPushButton("Capture")
         self.stop_btn.clicked.connect(self._slot_stop_preview)
         self.capture_btn.clicked.connect(self._slot_capture_hd)
-        #self.preview_label.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
-        #self.preview_label.setScaledContents(True)
 
         self.main_layout = QGridLayout(self)
-        self.main_layout.addWidget(self.preview_label, 0, 0, 1, 2)
+        self.main_layout.addWidget(self.preview_display, 0, 0, 1, 2)
         self.main_layout.addWidget(self.stop_btn, 1, 0, 1, 1)
         self.main_layout.addWidget(self.capture_btn, 1, 1, 1, 1)
 
     def _init_camera(self):
         self.camera_0 = GSTCamera(sensor_id=0)
         self.camera_0.start()
-        self.camera_1 = GSTCamera(sensor_id=1)
-        self.camera_1.start()
+        # self.camera_1 = GSTCamera(sensor_id=1)
+        # self.camera_1.start()
 
     def _init_timeline(self):
         self.timeline = QTimeLine(duration=99999, parent=self)
@@ -51,16 +69,16 @@ class TakePhotoWindow(QWidget):
         print(f"\rFetched {self.FRAME_COUNT}-th {type(frame)} frame with shape {frame.shape} of type {frame.dtype}", end="")
         self.FRAME_COUNT += 1
         height, width, channel = frame.shape
-        bytesPerLine = 3 * width
+        bytesPerLine = channel * width
         frame_qimg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888) 
-        self.preview_label.setPixmap(QPixmap(frame_qimg))
+        self.preview_display.setImage(frame_qimg)
 
     def _slot_stop_preview(self):
         self.timeline.stop()
 
     def _slot_capture_hd(self):
         img_0 = self.camera_0.capture()
-        img_1 = self.camera_1.capture()
+        # img_1 = self.camera_1.capture()
         # img_sbs = np.concatenate([img_0, img_1], axis=1)
         # cv2.imwrite("sbs_00.jpg", img_sbs)
         # self.close()
@@ -69,7 +87,7 @@ class TakePhotoWindow(QWidget):
         print("Exiting take photo window...")
         self.timeline.stop()
         self.camera_0.stop()
-        self.camera_1.stop()
+        # self.camera_1.stop()
 
 
 
