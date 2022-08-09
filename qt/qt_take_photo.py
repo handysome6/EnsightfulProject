@@ -1,98 +1,46 @@
 import sys
-from PyQt5.QtGui import QImage, QPixmap, QPainter
-from PyQt5.QtCore import Qt, QTimeLine
-from PyQt5.QtWidgets import QWidget, QLabel, QSizePolicy, QPushButton, QGridLayout
-from PyQt5 import QtCore, QtWidgets, QtGui
-import cv2
-import numpy as np
-from gstreamer.new_gst_camera import GSTCamera
-import time
 
+from PyQt5.QtWidgets import QWidget, QApplication, QHBoxLayout, QPushButton, QSizePolicy
+from PyQt5.QtGui import QWindow
 
-class ImageDisplay(QWidget):
-    def __init__(self, parent=None):
-        super().__init__()
-        self.m_image = None
-        #self.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
-    
-    def setImage(self, qimage):
-        self.m_image = qimage
-        self.repaint()
-
-    def paintEvent(self, paint_event):
-        if self.m_image == None:
-            print("no qimg exist")
-            return
-        qp = QPainter(self)
-        qp.drawImage(self.rect(), self.m_image, self.m_image.rect())
-
+from gstreamer.gst_camera import CameraWithPreview, CameraNoPreview
 
 class TakePhotoWindow(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self) -> None:
         super().__init__()
-        self.setWindowTitle("Take a photo")
-        self._init_region()
-        self._init_camera()
-        self._init_timeline()
-        self.FRAME_COUNT = 0
         self.showMaximized()
+        
+        # init camera
+        self.camera_0 = CameraWithPreview(sensor_id=0)
+        self.camera_1 = CameraNoPreview(sensor_id=1)
+        # fetch embedded window handle
+        preview_window_xid = self.camera_0.get_window_xid()
+        # embed x11 window to qt widget
+        embbed_preview_window = QWindow.fromWinId(preview_window_xid)
+        embbed_preview_widget = QWidget.createWindowContainer(embbed_preview_window)
 
-    def _init_region(self):
-        self.preview_display = ImageDisplay()
-        self.stop_btn = QPushButton("Stop")
-        self.capture_btn = QPushButton("Capture")
-        self.stop_btn.clicked.connect(self._slot_stop_preview)
-        self.capture_btn.clicked.connect(self._slot_capture_hd)
-
-        self.main_layout = QGridLayout(self)
-        self.main_layout.addWidget(self.preview_display, 0, 0, 1, 2)
-        self.main_layout.addWidget(self.stop_btn, 1, 0, 1, 1)
-        self.main_layout.addWidget(self.capture_btn, 1, 1, 1, 1)
-
-    def _init_camera(self):
-        self.camera_0 = GSTCamera(sensor_id=0)
-        self.camera_0.start()
-        # self.camera_1 = GSTCamera(sensor_id=1)
-        # self.camera_1.start()
-
-    def _init_timeline(self):
-        self.timeline = QTimeLine(duration=99999, parent=self)
-        self.timeline.setFrameRange(0, 99999)
-        self.timeline.setUpdateInterval(int(1000/30))
-        self.timeline.frameChanged.connect(self._slot_update_frame)
-        self.timeline.start()
-        #time.sleep(1)
-        #img_0 = self.camera_0.capture()
-
-    def _slot_update_frame(self):
-        frame = self.camera_0.read_preview()
-        print(f"\rFetched {self.FRAME_COUNT}-th {type(frame)} frame with shape {frame.shape} of type {frame.dtype}", end="")
-        self.FRAME_COUNT += 1
-        height, width, channel = frame.shape
-        bytesPerLine = channel * width
-        frame_qimg = QImage(frame.data, width, height, bytesPerLine, QImage.Format_RGB888) 
-        self.preview_display.setImage(frame_qimg)
-
-    def _slot_stop_preview(self):
-        self.timeline.stop()
-
-    def _slot_capture_hd(self):
-        img_0 = self.camera_0.capture()
-        # img_1 = self.camera_1.capture()
-        # img_sbs = np.concatenate([img_0, img_1], axis=1)
-        # cv2.imwrite("sbs_00.jpg", img_sbs)
-        # self.close()
+        # organize layout
+        layout = QHBoxLayout(self)
+        layout.addWidget(embbed_preview_widget)
+        capture_button = QPushButton("capture")
+        layout.addWidget(capture_button)
+        #capture_button.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Minimum)
+        capture_button.clicked.connect(self._slot_capture)
+    
+    def _slot_capture(self):
+        """slot to take snapshot for both cameras"""
+        frame0 = self.camera_0.capture()
+        frame1 = self.camera_1.capture()
+        print(frame0.shape, frame1.shape)
 
     def closeEvent(self, event):
+        """overriding default close event for qt window"""
         print("Exiting take photo window...")
-        self.timeline.stop()
         self.camera_0.stop()
-        # self.camera_1.stop()
-
-
+        self.camera_1.stop()
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication([])
+    app = QApplication(sys.argv)
     widget = TakePhotoWindow()
     widget.show()
 

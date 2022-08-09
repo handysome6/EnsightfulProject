@@ -1,4 +1,4 @@
-from gstreamer.gst_camera import GSTCamera
+from gstreamer.gst_camerav1 import GSTCamera
 import time
 
 cam = GSTCamera()
