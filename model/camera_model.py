@@ -12,9 +12,7 @@ class CameraModel():
         # init params
         self.cm1 = self.cm2 = self.cd1 = self.cd2 = None
         self.R = self.T = None
-        self.Q = self.leftMapX = self.leftMapY = self.rightMapX = self.rightMapY = None
         
-    
     @classmethod
     def load_model(cls, npz_path) -> None:
         """
@@ -28,7 +26,7 @@ class CameraModel():
 
         # make sure camera info exist, else raise Errors
         try:
-            camera.CCD_type = params['CCD_type']
+            camera.image_size = params['image_size']
             camera.is_fisheye = params['is_fisheye']
         except:
             raise Exception(f"No camera info found at {npz_path}")
@@ -41,68 +39,11 @@ class CameraModel():
             camera.cd2 = params['cd2']
             camera.R = params['R']
             camera.T = params['T']
-            camera.Q = params['Q']
-            camera.leftMapX = params['leftMapX']
-            camera.leftMapY = params['leftMapY']
-            camera.rightMapX = params['rightMapX']
-            camera.rightMapY = params['rightMapY']
         except: # if encounter None object, then no assignment
             pass
 
         return camera
     
-
-    def is_calibrated(self):
-        """
-        Check if this model is calibrated.
-        """
-        if  self.cm1 is None or self.cd1 is None or self.cm2 is None or self.cd2 is None or \
-            self.R is None or self.T is None:
-            return False
-        else:
-            return True
-
-
-    def is_rectified(self):
-        """
-        Check if this model is rectified"""
-        if  self.Q is None or\
-            self.leftMapX  is None or self.leftMapY  is None or \
-            self.rightMapX is None or self.rightMapY is None:
-            return False
-        else:
-            return True
-
-
-    def update_intrinsic(self, cm1, cd1, cm2, cd2):
-        """
-        Update intrinsic parameters
-        """
-        self.cm1 = cm1
-        self.cd1 = cd1
-        self.cm2 = cm2
-        self.cd2 = cd2
-
-
-    def update_extrinsic(self, R, T):
-        """
-        Update extrinsic parameters
-        """
-        self.R = R
-        self.T = T
-
-
-    def update_maps(self, Q, leftMapX, leftMapY, rightMapX, rightMapY):
-        """
-        Update rectified maps.
-        """
-        self.Q = Q
-        self.leftMapX = leftMapX
-        self.leftMapY = leftMapY
-        self.rightMapX = rightMapX
-        self.rightMapY = rightMapY
-
-
     def save_model(self, npz_path):
         """
         Save this model to Path.
@@ -119,12 +60,34 @@ class CameraModel():
             cd2 = self.cd2,
             R = self.R, 
             T = self.T, 
-            Q = self.Q,
-            leftMapX=self.leftMapX, 
-            leftMapY=self.leftMapY,
-            rightMapX=self.rightMapX,
-            rightMapY=self.rightMapY,
         )
+
+
+    def is_calibrated(self):
+        """
+        Check if this model is calibrated.
+        """
+        if  self.cm1 is None or self.cd1 is None or self.cm2 is None or self.cd2 is None or \
+            self.R is None or self.T is None:
+            return False
+        else:
+            return True
+
+    def update_intrinsic(self, cm1, cd1, cm2, cd2):
+        """
+        Update intrinsic parameters
+        """
+        self.cm1 = cm1
+        self.cd1 = cd1
+        self.cm2 = cm2
+        self.cd2 = cd2
+
+    def update_extrinsic(self, R, T):
+        """
+        Update extrinsic parameters
+        """
+        self.R = R
+        self.T = T
 
 
     def __str__(self) -> str:
@@ -140,4 +103,3 @@ cd2: \n {self.cd2}
 R: \n {self.R}
 T: \n {self.T}"""
         return str
-

@@ -1,19 +1,15 @@
 import cv2
 import numpy as np
-
 from measure.click_coord import ClickImage
 from measure.matcher import AutoMatcher, MATCHER_TYPE
 from utils.utils import snap_subpix_corner, imshow
 
 
 class Ruler():
-    def __init__(self, camera, left_img, right_img) -> None:
+    def __init__(self, Q, left_img, right_img) -> None:
         """Measure segment length using stereo images.
-        
-        cam_path: camera model
-        img: target image for segment measuring
         """
-        self.camera = camera
+        self.Q = Q
         self.endpoints = []
         self.point1_left_coord  = []
         self.point1_right_coord = []
@@ -24,11 +20,11 @@ class Ruler():
         self.right_img = right_img
         self.left_gray = cv2.cvtColor(left_img, cv2.COLOR_BGR2GRAY)
         self.right_gray = cv2.cvtColor(right_img, cv2.COLOR_BGR2GRAY)
-        
+
 
     def measure_segment(self):
         """Measure a segment length by clicking points"""
-        Q = self.camera.Q
+        Q = self.Q
 
         # click to get segment
         point1, point2 = self.endpoints[-2:]
@@ -36,7 +32,6 @@ class Ruler():
         world_coord2 = Ruler.get_world_coord_Q(Q, point2[0], point2[1])
 
         self.segment_len = cv2.norm(world_coord1, world_coord2)
-
         return self.segment_len
 
 
@@ -51,15 +46,29 @@ class Ruler():
         img_point_left  = left_clicker.click_coord()
         # snap to corner - LEFT
         img_point_left = snap_subpix_corner(self.left_gray, img_point_left)
-
+        width = self.left_img.shape[1]
         if automatch:
             # auto match endpoints - RIGHT
             img_point_right = []
             matcher = AutoMatcher(self.left_img, self.right_img, matcher=matcher)
+            # image = np.concatenate([self.left_img, self.right_img], axis=1)
+            image = self.right_img.copy()
             for point in img_point_left:
                 _, top_kps = matcher.match(point, show_result=False)
                 img_point_right.append(top_kps[0].pt)
             assert len(img_point_right) == 2
+            # point_ID = 1
+            # for point in img_point_left:
+            #     cv2.circle(image, (point[0].astype(int), point[1].astype(int)), 15, (0, 0, 255), -1)
+            #     cv2.putText(image, f" {point_ID}", (point[0].astype(int), point[1].astype(int)), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 10, 0, 0)
+            #     point_ID += 1
+            user_clicker = ClickImage(image, 'Please reselected the point if needed')
+            user_clicker.coords = img_point_right
+            # for i in range(len(img_point_right)):
+            #     img_point_right[i] = (img_point_right[i][0] + width, img_point_right[i][1])
+            img_point_right = user_clicker.click_coord()
+            # for i in range(len(img_point_right)):
+            #     img_point_right[i] = (img_point_right[i][0] - width, img_point_right[i][1])
         else:
             # hand pick endpoints - RIGHT
             left_clicker = ClickImage(self.right_img, 'Please click segment - Second View')
@@ -123,7 +132,7 @@ class Ruler():
         line_thickness = 8
         show_img = self.left_img.copy()
         cv2.line(show_img, point1, point2, (0,255,0), thickness=line_thickness)
-        cv2.putText(show_img, f"Length of segment: {self.segment_len:.2f}mm", 
+        cv2.putText(show_img, f"Length of segment: {self.segment_len:.2f}mm",
             (0,100), cv2.FONT_HERSHEY_SIMPLEX, 3, (0,255,0), 3)
 
         imshow('Image Result', show_img)

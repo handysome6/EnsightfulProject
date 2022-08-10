@@ -72,7 +72,7 @@ t. ! queue ! valve drop=1 name=capture_valve ! \
 t. ! queue ! nvtee ! \
     nvvidconv ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4}  ! \
     videoconvert ! video/x-raw, format=BGRx ! \
-    gtksink name=gtksink max-lateness=1"
+    gtksink name=gtksink"
         # print(gtksink_pipeline)
         self.pipeline = Gst.parse_launch(gtksink_pipeline)
         self.capture_valve = self.pipeline.get_by_name("capture_valve")
