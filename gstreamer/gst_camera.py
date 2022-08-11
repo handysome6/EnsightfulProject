@@ -55,9 +55,6 @@ class CameraWithPreview(Gtk.Window):
         # The window handle must be retrieved first in GUI-thread and before
         # playing pipeline.
         # Only works in Linux, which use X11
-        print(self)
-        print(self.get_window())
-        print(self.get_window().get_xid())
         preview_window_xid = self.get_window().get_xid()
         return preview_window_xid
 
@@ -67,12 +64,12 @@ class CameraWithPreview(Gtk.Window):
 video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=30/1 ! \
 tee name=t \
 t. ! queue ! valve drop=1 name=capture_valve ! \
-    nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw,format=RGB ! \
+    nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw,format=BGR ! \
     appsink name=capture_sink async=false emit-signals=1 \
 t. ! queue ! nvtee ! \
     nvvidconv ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4}  ! \
     videoconvert ! video/x-raw, format=BGRx ! \
-    gtksink name=gtksink max-lateness=1"
+    gtksink name=gtksink"
         # print(gtksink_pipeline)
         self.pipeline = Gst.parse_launch(gtksink_pipeline)
         self.capture_valve = self.pipeline.get_by_name("capture_valve")
@@ -191,7 +188,7 @@ class CameraNoPreview():
         fakesink_pipeline = f"nvarguscamerasrc sensor-id={sensor_id} ! \
 video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=10/1 ! \
     queue ! valve drop=1 name=capture_valve ! \
-    nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw,format=RGB ! \
+    nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw,format=BGR ! \
     appsink name=capture_sink async=false emit-signals=1"
         # print(fakesink_pipeline)
         self.pipeline = Gst.parse_launch(fakesink_pipeline)

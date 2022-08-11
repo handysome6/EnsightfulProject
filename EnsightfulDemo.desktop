@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=Ensightful Demo
+Icon=/home/jetson/EnsightfulProject/demo_icon.png
+Exec=python3 /home/jetson/EnsightfulProject/demo.py
+Terminal=true
+Type=Application

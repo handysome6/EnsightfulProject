@@ -18,8 +18,13 @@ class StereoRectify():
         self.width = self.camera.image_size[0]
         self.height = self.camera.image_size[1]
 
+        # init Q and maps
+        self.Q = None
+        self.leftMapX = self.leftMapY = None
+        self.rightMapX = self.rightMapY = None
+
         # folder Path object
-        if operation_folder != None:
+        if operation_folder is not None:
             self.operation_folder = operation_folder
             self.scenes_folder = self.operation_folder / 'scenes'
             self.rectify_folder = self.operation_folder / 'rectified'
@@ -49,6 +54,50 @@ class StereoRectify():
         else:
             self._stereo_rectify_vanilla(roi_ratio, newImageSize)
 
+    def is_rectified(self):
+        """Check if this rectifier is rectified"""
+        if  self.Q is None or\
+            self.leftMapX  is None or self.leftMapY  is None or \
+            self.rightMapX is None or self.rightMapY is None:
+            return False
+        else:
+            return True
+
+
+    def rectify_image(self, img_left=None, img_right=None, sbs_img=None):
+        """ 
+        Rectify single sbs image using maps
+        img_left: left img
+        img_right: right img
+        img_path: Path object to single sbs image
+        """
+        # ensure rectify parameters exist
+        if not self.is_rectified():
+            print("Rectifier not rectified, rectifying first...")
+            self.rectify_camera()
+        
+        if img_left is not None and img_right is not None:
+            img_left = img_left
+            img_right = img_right
+        elif sbs_img is not None:
+            # split
+            img_left = sbs_img [:,          0:   self.width]
+            img_right = sbs_img [:, self.width: 2*self.width]
+        else:
+            raise Exception("At least one pair of img should be provided. "
+                "Either sbs_img or img_left/right.")
+        
+        # rectify the given image
+        print(img_left.dtype)
+        left_rect = cv2.remap(
+            img_left, self.leftMapX, self.leftMapY, 
+            interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT
+        )
+        right_rect = cv2.remap(
+            img_right, self.rightMapX, self.rightMapY, 
+            interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT
+        )
+        return left_rect, right_rect
 
     def rectify_samples(self):
         """
@@ -72,27 +121,11 @@ class StereoRectify():
         print("Rectify images done.")
 
 
-    def rectify_image(self, sbs_img):
-        """ 
-        Rectify single sbs image using maps
-        img_path: Path object to single sbs image
-        """
-        if not self.camera.is_rectified():
-            raise Exception("Camera not rectified.")
-            exit()
-        
-        # split
-        imgL = sbs_img [:,          0:   self.width]
-        imgR = sbs_img [:, self.width: 2*self.width]
-        imgL = cv2.remap(imgL, self.camera.leftMapX, self.camera.leftMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-        imgR = cv2.remap(imgR, self.camera.rightMapX, self.camera.rightMapY, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
-        return imgL, imgR
-
-
     def _stereo_rectify_vanilla(self, alpha, newImageSize):  
         """
         Compute rectify map in Vanilla approach
         """
+        print("Vanilla rectifying...")
         # calculate rectify matrices using calibration param
         R1, R2, P1, P2, Q, ROI1, ROI2 = \
             cv2.stereoRectify(
@@ -104,22 +137,22 @@ class StereoRectify():
                 newImageSize=newImageSize,
             )
         
+        self.Q = Q
         # create map for rectification
-        leftMapX, leftMapY  = cv2.initUndistortRectifyMap(self.camera.cm1, self.camera.cd1, R1, P1, newImageSize, cv2.CV_16SC2)
-        rightMapX, rightMapY= cv2.initUndistortRectifyMap(self.camera.cm2, self.camera.cd2, R2, P2, newImageSize, cv2.CV_16SC2)
+        self.leftMapX, self.leftMapY  = cv2.initUndistortRectifyMap(
+            self.camera.cm1, self.camera.cd1, R1, P1, newImageSize, cv2.CV_16SC2
+        )
+        self.rightMapX, self.rightMapY= cv2.initUndistortRectifyMap(
+            self.camera.cm2, self.camera.cd2, R2, P2, newImageSize, cv2.CV_16SC2
+        )
         print("Calculate map done.")
-
-        # save updated camera model
-        self.camera.update_maps(Q, leftMapX, leftMapY, rightMapX, rightMapY)
-        npz_path = self.camera_folder / "camera_model.npz"
-        self.camera.save_model(npz_path)
-
 
     def _stereo_rectify_fisheye(self, alpha, newImageSize):
         """
         Compute rectify map in Fisheye approach - TODO
         """
         pass
+
 
 
 if __name__ == "__main__":

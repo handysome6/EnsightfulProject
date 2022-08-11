@@ -17,7 +17,11 @@ def imshow(window_name, img):
     k = cv2.waitKey(0)
     if k == 27:
         cv2.destroyAllWindows()
-
+    while True:
+        if cv2.getWindowProperty(window_name,cv2.WND_PROP_VISIBLE) < 1:
+            break
+        cv2.waitKey(1)
+    cv2.destroyAllWindows()
 
 
 subpix_criteria = (cv2.TERM_CRITERIA_EPS+cv2.TERM_CRITERIA_MAX_ITER, 50, 0.00001)

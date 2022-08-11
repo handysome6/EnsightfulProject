@@ -33,9 +33,9 @@ is_fisheye = False
 
 # Hyperparams
 folder_name = "0801_8mm_IMX477_jetson"
-# folder_name = "0803_8mm_IMX477_jetson"
+folder_name = "0803_8mm_IMX477_jetson"
 operation_folder = Path("datasets") / folder_name
-rows = 11
+rows = 12
 columns = 8
 CHECKERBOARD = (rows,columns)
 square_size = 25
