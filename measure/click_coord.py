@@ -30,7 +30,7 @@ class ClickImage():
             self.showImg = self.img.copy()
             cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
             height, width = self.img.shape[:2]
-            cv2.resizeWindow(self.windowName, int(width * 1000 / height), 1000)
+            cv2.resizeWindow(self.windowName, int(width * 500 / height), 500)
             if self.coords[0] != ():
                 cv2.circle(self.showImg, np.array(self.coords[0], dtype=np.int32), 15, (0, 0, 255), -1)
                 cv2.putText(self.showImg, f" {1}", np.array(self.coords[0], dtype=np.int32),
@@ -77,7 +77,7 @@ class ClickImage():
             # cv2.circle(self.showImg, (x,y), 10, (0, 255, 255), -1)
             cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
             height, width = self.img.shape[:2]
-            cv2.resizeWindow(self.windowName, int(width * 1000 / height), 1000)
+            cv2.resizeWindow(self.windowName, int(width * 500 / height), 500)
             cv2.imshow(self.windowName, self.showImg)
         if event == cv2.EVENT_LBUTTONUP:
             if self.flag == 0:  # 如果当前没有在选点，进入选点模式
@@ -115,7 +115,7 @@ class ClickImage():
         self.showImg = self.img.copy()
         cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
         height, width = self.img.shape[:2]
-        cv2.resizeWindow(self.windowName, int(width*1000/height), 1000)
+        cv2.resizeWindow(self.windowName, int(width*500/height), 500)
         cv2.createTrackbar('pick point', self.windowName, 0, 2, self.point_ID)
         cv2.createTrackbar('scale', self.windowName, 16, 50, self.nothing)
         # cv2.createTrackbar('finish', self.windowName, 0, 1, self.nothing)
@@ -159,7 +159,7 @@ class ClickImage():
                 # cv2.circle(self.showImg, (x,y), 10, (0, 255, 255), -1)
                 cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
                 height, width = self.img.shape[:2]
-                cv2.resizeWindow(self.windowName, int(width * 1000 / height), 1000)
+                cv2.resizeWindow(self.windowName, int(width * 500 / height), 500)
                 cv2.imshow(self.windowName, self.showImg)
             if cv2.getTrackbarPos('pick point', self.windowName) == 2:
                 # if self.coords[0] == () or self.coords[1] == ():

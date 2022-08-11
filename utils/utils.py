@@ -10,10 +10,10 @@ def imshow(window_name, img):
     height, width = img.shape[:2]
     cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
     cv2.imshow(window_name, img)
-    if height > 1000:
-        cv2.resizeWindow(window_name, int(width*1000/height), 1000)
-    else:
-        cv2.resizeWindow(window_name, width, height)
+    #if height > 600:
+    cv2.resizeWindow(window_name, int(width*500/height), 500)
+    #else:
+    #    cv2.resizeWindow(window_name, width, height)
     k = cv2.waitKey(0)
     if k == 27:
         cv2.destroyAllWindows()
