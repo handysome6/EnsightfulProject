@@ -106,6 +106,20 @@ class ClickImage():
                             self.coords[1] = (self.mouseX, self.mouseY)
                     else:
                         print("The point is too close to the boundary, please select again!")
+                self.showImg = self.img.copy()
+                cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
+                height, width = self.img.shape[:2]
+                cv2.resizeWindow(self.windowName, int(width * 500 / height), 500)
+                if self.coords[0] != ():
+                    cv2.circle(self.showImg, np.array(self.coords[0], dtype=np.int32), 15, (0, 0, 255), -1)
+                    cv2.putText(self.showImg, f" {1}", np.array(self.coords[0], dtype=np.int32),
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 10, 0, 0)
+
+                if self.coords[1] != ():
+                    cv2.circle(self.showImg, np.array(self.coords[1], dtype=np.int32), 15, (0, 0, 255), -1)
+                    cv2.putText(self.showImg, f" {2}", np.array(self.coords[1], dtype=np.int32),
+                            cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 10, 0, 0)
+                cv2.imshow(self.windowName, self.showImg)
 
     def click_coord(self, num=2):
         """
@@ -115,9 +129,9 @@ class ClickImage():
         self.showImg = self.img.copy()
         cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
         height, width = self.img.shape[:2]
-        cv2.resizeWindow(self.windowName, int(width*500/height), 500)
-        cv2.createTrackbar('pick point', self.windowName, 0, 2, self.point_ID)
+        cv2.resizeWindow(self.windowName, int(width*500/height), 500)       
         cv2.createTrackbar('scale', self.windowName, 16, 50, self.nothing)
+        cv2.createTrackbar('pick point', self.windowName, 0, 2, self.point_ID)
         # cv2.createTrackbar('finish', self.windowName, 0, 1, self.nothing)
         cv2.setMouseCallback(self.windowName, self.click_event)
         while(1):

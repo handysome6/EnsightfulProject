@@ -46,11 +46,6 @@ class TakePhotoWindow(QWidget):
         self.setWindowTitle("Ensightful Demo")
         self.showMaximized()
 
-        # start loading camera in thread
-        load_camera_thread = LoadCameraThread(self)
-        load_camera_thread.camera_loaded.connect(self._slot_load_single_photo_thum)
-        load_camera_thread.start()
-
         # GUI component
         self.preview_area_holder = QLabel("Loading cameras...")
         self.preview_area_holder.setAlignment(Qt.AlignCenter)
@@ -72,6 +67,12 @@ class TakePhotoWindow(QWidget):
         self.empty_notice = Notify.Notification.new("Please take a photo before measuring!")
         self.empty_notice.set_timeout(1000)
 
+        self.show()
+
+        # start loading camera in thread
+        load_camera_thread = LoadCameraThread(self)
+        load_camera_thread.camera_loaded.connect(self._slot_camera_loaded)
+        load_camera_thread.start()
 
     def _init_toolbar(self):
         # camera button
@@ -188,6 +189,6 @@ class TakePhotoWindow(QWidget):
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     widget = TakePhotoWindow()
-    widget.show()
+    #widget.show()
 
     sys.exit(app.exec())
