@@ -11,10 +11,10 @@ Notify.init("demo")
 
 from PyQt5.QtWidgets import (
     QWidget, QApplication, QPushButton, QSizePolicy, 
-    QVBoxLayout, QHBoxLayout, QFileDialog
+    QVBoxLayout, QHBoxLayout, QFileDialog, QLabel
 )
-from PyQt5.QtGui import QWindow, QIcon
-from PyQt5.QtCore import QSize, Qt
+from PyQt5.QtGui import QWindow, QIcon, QPalette, QColor
+from PyQt5.QtCore import QSize, Qt, pyqtSignal, QThread
 
 from gstreamer.gst_camera import CameraWithPreview, CameraNoPreview
 from measure.matcher import MATCHER_TYPE
@@ -24,13 +24,46 @@ from calib.rectification import StereoRectify
 
 home_dir = "/home/jetson/EnsightfulProject/"
 
+class LoadCameraThread(QThread):
+    camera_loaded = pyqtSignal(CameraWithPreview, CameraNoPreview)
+
+    def __init__(self, parent):
+        """worker thread for loading camera instances
+        """
+        super().__init__(parent)
+        self.dir = dir
+    
+    def run(self):
+        camera_0 = CameraWithPreview(sensor_id=0)
+        camera_1 = CameraNoPreview(sensor_id=1)
+
+        self.camera_loaded.emit(camera_0, camera_1)
+
 
 class TakePhotoWindow(QWidget):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Ensightful Demo")
         self.showMaximized()
-        
+
+        # start loading camera in thread
+        load_camera_thread = LoadCameraThread(self)
+        load_camera_thread.camera_loaded.connect(self._slot_load_single_photo_thum)
+        load_camera_thread.start()
+
+        # GUI component
+        self.preview_area_holder = QLabel("Loading cameras...")
+        self.preview_area_holder.setAlignment(Qt.AlignCenter)
+        self.preview_area_holder.setAutoFillBackground(True)
+        self.preview_area_holder.setPalette(QPalette(QColor("black")))
+        self.preview_area_holder.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._init_toolbar()
+        # add to layout
+        self.main_layout = QHBoxLayout(self)
+        self.main_layout.addWidget(self.preview_area_holder)
+        self.main_layout.addLayout(self.tool_layout)
+
+        # create reuseable vairable
         self._load_default_rectifier()
         self.captured_left = None
         self.captured_right = None
@@ -39,28 +72,6 @@ class TakePhotoWindow(QWidget):
         self.empty_notice = Notify.Notification.new("Please take a photo before measuring!")
         self.empty_notice.set_timeout(1000)
 
-        # init camera
-        self.camera_0 = CameraWithPreview(sensor_id=0)
-        self.camera_1 = CameraNoPreview(sensor_id=1)
-
-        # preview widget
-        # fetch embedded window handle, embed x11 window to qt widget
-        preview_window_xid = self.camera_0.get_window_xid()
-        embbed_preview_window = QWindow.fromWinId(preview_window_xid)
-        embbed_preview_widget = QWidget.createWindowContainer(embbed_preview_window)
-        # embbed_preview_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        self._init_toolbar()
-
-        main_layout = QHBoxLayout(self)
-        main_layout.addWidget(embbed_preview_widget)
-        main_layout.addLayout(self.tool_layout)
-    
-    def _load_default_rectifier(self):
-        """Load the default camera model from sample folder"""
-        cam_path = Path(home_dir) / "example" / "camera_model.npz"
-        camera_model = CameraModel.load_model(cam_path)
-        self.rectifier = StereoRectify(camera_model, None)
 
     def _init_toolbar(self):
         # camera button
@@ -92,13 +103,27 @@ class TakePhotoWindow(QWidget):
         measure_button.setSizePolicy(sp)
         measure_button.clicked.connect(self._slot_measure_captured)
 
-
         # organize layout
         self.tool_layout = QVBoxLayout()
         self.tool_layout.addWidget(folder_button)
         self.tool_layout.addWidget(camera_button, alignment=Qt.AlignHCenter)
         self.tool_layout.addWidget(measure_button)
 
+    def _load_default_rectifier(self):
+        """Load the default camera model from sample folder"""
+        cam_path = Path(home_dir) / "example" / "camera_model.npz"
+        camera_model = CameraModel.load_model(cam_path)
+        self.rectifier = StereoRectify(camera_model, None)
+
+    def _slot_camera_loaded(self, camera_0, camera_1):
+        self.camera_0 = camera_0
+        self.camera_1 = camera_1
+        # fetch embedded window handle, embed x11 window to qt widget
+        preview_window_xid = self.camera_0.get_window_xid()
+        embbed_preview_window = QWindow.fromWinId(preview_window_xid)
+        embbed_preview_widget = QWidget.createWindowContainer(embbed_preview_window)
+        
+        self.main_layout.replaceWidget(self.preview_area_holder, embbed_preview_widget)
 
     def _slot_capture(self):
         """slot to take snapshot for both cameras"""
