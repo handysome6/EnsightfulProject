@@ -14,7 +14,7 @@ from PyQt5.QtWidgets import (
     QVBoxLayout, QHBoxLayout, QFileDialog, QLabel
 )
 from PyQt5.QtGui import QWindow, QIcon, QPalette, QColor
-from PyQt5.QtCore import QSize, Qt, pyqtSignal, QThread
+from PyQt5.QtCore import QSize, Qt, pyqtSignal, QThread, QObject
 
 from gstreamer.gst_camera import CameraWithPreview, CameraNoPreview
 from measure.matcher import MATCHER_TYPE
@@ -24,20 +24,14 @@ from calib.rectification import StereoRectify
 
 home_dir = "/home/jetson/EnsightfulProject/"
 
-class LoadCameraThread(QThread):
-    camera_loaded = pyqtSignal(CameraWithPreview, CameraNoPreview)
-
-    def __init__(self, parent):
-        """worker thread for loading camera instances
-        """
-        super().__init__(parent)
-        self.dir = dir
+class LoadCameraWorker(QObject):
+    finished = pyqtSignal(CameraWithPreview, CameraNoPreview)
     
     def run(self):
         camera_0 = CameraWithPreview(sensor_id=0)
         camera_1 = CameraNoPreview(sensor_id=1)
 
-        self.camera_loaded.emit(camera_0, camera_1)
+        self.finished.emit(camera_0, camera_1)
 
 
 class TakePhotoWindow(QWidget):
@@ -67,12 +61,16 @@ class TakePhotoWindow(QWidget):
         self.empty_notice = Notify.Notification.new("Please take a photo before measuring!")
         self.empty_notice.set_timeout(1000)
 
+        # show immediately
         self.show()
 
         # start loading camera in thread
-        load_camera_thread = LoadCameraThread(self)
-        load_camera_thread.camera_loaded.connect(self._slot_camera_loaded)
-        load_camera_thread.start()
+        thread = QThread()
+        worker = LoadCameraWorker()
+        worker.moveToThread(thread)
+        thread.started.connect(worker.run)
+        worker.finished.connect(self._slot_camera_loaded)
+        thread.start()
 
     def _init_toolbar(self):
         # camera button
