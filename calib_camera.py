@@ -32,20 +32,19 @@ image_size = (4032, 3040)       # Jetson IMX477
 is_fisheye = False
 
 # Hyperparams
-folder_name = "0801_8mm_IMX477_jetson"
-folder_name = "0803_8mm_IMX477_jetson"
+folder_name = "0812_6mm_IMX477_jetson3"
 operation_folder = Path("datasets") / folder_name
-rows = 12
+rows = 11
 columns = 8
 CHECKERBOARD = (rows,columns)
-square_size = 25
+square_size = 60
 
 camera = CameraModel(image_size, is_fisheye)
-preprocess = Preprocess(camera, operation_folder,
-    CHECKERBOARD=CHECKERBOARD, square_size=square_size)
-data_path = operation_folder / "calibration_data"
-preprocess.preprocess_sbs()
-print()
+# preprocess = Preprocess(camera, operation_folder,
+#     CHECKERBOARD=CHECKERBOARD, square_size=square_size)
+# data_path = operation_folder / "calibration_data"
+# preprocess.preprocess_sbs()
+# print()
 
 calibration = Calibrate(camera, operation_folder,
     CHECKERBOARD=CHECKERBOARD, square_size=square_size)

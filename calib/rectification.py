@@ -69,7 +69,7 @@ class StereoRectify():
         Rectify single sbs image using maps
         img_left: left img
         img_right: right img
-        img_path: Path object to single sbs image
+        sbs_img: single sbs image
         """
         # ensure rectify parameters exist
         if not self.is_rectified():
