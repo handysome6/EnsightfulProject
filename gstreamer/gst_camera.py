@@ -159,6 +159,15 @@ t. ! queue ! nvtee ! \
             traceback.print_exc()
             self.loop.quit()
 
+    def pause(self):
+        print("pausing pipeline...")
+        self.pipeline.set_state(Gst.State.PAUSED)
+
+    def resume(self):
+        print("resuming pipeline...")
+        self.pipeline.set_state(Gst.State.PLAYING)
+
+
     def stop(self):
         self.running = False
         self.pipeline.set_state(Gst.State.NULL)
@@ -280,5 +289,11 @@ video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=
 
 
 if __name__ == "__main__":
-    win = CameraWithPreview()
-    Gtk.main()
+    cam = CameraWithPreview()
+    # Gtk.main()
+    time.sleep(2)
+    cam.pause()
+    time.sleep(2)
+    cam.resume()
+    time.sleep(1)
+    cam.stop()
