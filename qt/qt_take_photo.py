@@ -24,15 +24,6 @@ from calib.rectification import StereoRectify
 
 home_dir = "/home/jetson/EnsightfulProject/"
 
-class LoadCameraWorker(QObject):
-    finished = pyqtSignal(CameraWithPreview, CameraNoPreview)
-    
-    def run(self):
-        camera_0 = CameraWithPreview(sensor_id=0)
-        camera_1 = CameraNoPreview(sensor_id=1)
-
-        self.finished.emit(camera_0, camera_1)
-
 
 class TakePhotoWindow(QWidget):
     def __init__(self) -> None:
@@ -64,13 +55,14 @@ class TakePhotoWindow(QWidget):
         # show immediately
         self.show()
 
-        # start loading camera in thread
-        thread = QThread()
-        worker = LoadCameraWorker()
-        worker.moveToThread(thread)
-        thread.started.connect(worker.run)
-        worker.finished.connect(self._slot_camera_loaded)
-        thread.start()
+        # start loading camera
+        self.camera_0 = CameraWithPreview(sensor_id=0)
+        self.camera_1 = CameraNoPreview(sensor_id=1)
+        # fetch embedded window handle, embed x11 window to qt widget
+        preview_window_xid = self.camera_0.get_window_xid()
+        embbed_preview_window = QWindow.fromWinId(preview_window_xid)
+        embbed_preview_widget = QWidget.createWindowContainer(embbed_preview_window)
+        self.main_layout.replaceWidget(self.preview_area_holder, embbed_preview_widget)
 
     def _init_toolbar(self):
         # camera button
@@ -113,16 +105,6 @@ class TakePhotoWindow(QWidget):
         cam_path = Path(home_dir) / "example" / "camera_model.npz"
         camera_model = CameraModel.load_model(cam_path)
         self.rectifier = StereoRectify(camera_model, None)
-
-    def _slot_camera_loaded(self, camera_0, camera_1):
-        self.camera_0 = camera_0
-        self.camera_1 = camera_1
-        # fetch embedded window handle, embed x11 window to qt widget
-        preview_window_xid = self.camera_0.get_window_xid()
-        embbed_preview_window = QWindow.fromWinId(preview_window_xid)
-        embbed_preview_widget = QWidget.createWindowContainer(embbed_preview_window)
-        
-        self.main_layout.replaceWidget(self.preview_area_holder, embbed_preview_widget)
 
     def _slot_capture(self):
         """slot to take snapshot for both cameras"""

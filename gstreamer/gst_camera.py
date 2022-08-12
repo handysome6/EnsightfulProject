@@ -37,6 +37,7 @@ class CameraWithPreview(Gtk.Window):
     def __init__(self, sensor_id=0):
         super().__init__(title = f"camera {sensor_id} preview")
         Gtk.init()
+        self.connect("destroy", Gtk.main_quit)
 
         # params
         self.sensor_id = sensor_id
