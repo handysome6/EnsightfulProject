@@ -139,8 +139,9 @@ class TakePhotoWindow(QWidget):
         # save captured image
         timestamp = strftime("%H:%M:%S", localtime())
         print(f"Saving captured sbs image {timestamp}.jpg ...")
+        self.captured_left = cv2.cvtColor(self.captured_left, cv2.COLOR_RGBA2BGR)
+        self.captured_right = cv2.cvtColor(self.captured_right, cv2.COLOR_RGBA2BGR)
         sbs_captured = np.hstack([self.captured_left, self.captured_right])
-        sbs_captured = cv2.cvtColor(sbs_captured, cv2.COLOR_RGBA2BGR)
         cv2.imwrite(home_dir+f"datasets/test/{timestamp}.jpg", sbs_captured)
 
         # notify via bubble windows
