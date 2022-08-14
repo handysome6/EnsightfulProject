@@ -24,6 +24,16 @@ from calib.rectification import StereoRectify
 
 home_dir = "/home/jetson/EnsightfulProject/"
 
+class TakePhotoThread(QObject):
+    captured = pyqtSignal(np.ndarray)
+    def __init__(self, camera) -> None:
+        super().__init__()
+        self.camera = camera
+    
+    def run(self):
+        frame = self.camera.capture()
+        self.captured.emit(frame)
+
 
 class TakePhotoWindow(QWidget):
     def __init__(self) -> None:
@@ -108,20 +118,38 @@ class TakePhotoWindow(QWidget):
 
     def _slot_capture(self):
         """slot to take snapshot for both cameras"""
+        # self.cam0_thread = QThread()
+        # self.cam0_worker = TakePhotoThread(self.camera_0)
+        # self.cam0_worker.moveToThread(self.cam0_thread)
+        # self.cam0_thread.started.connect(self.cam0_worker.run)
+        # self.cam0_worker.captured.connect(self._slot_fetch_captured_left)
+
+        # self.cam1_thread = QThread()
+        # self.cam1_worker = TakePhotoThread(self.camera_1)
+        # self.cam1_worker.moveToThread(self.cam1_thread)
+        # self.cam1_thread.started.connect(self.cam0_worker.run)
+        # self.cam1_worker.captured.connect(self._slot_fetch_captured_right)
         self.captured_left = self.camera_0.capture()
         self.captured_right = self.camera_1.capture()
-        # self.captured_left = np.zeros((3040,4032,3), dtype=np.uint8)
-        # self.captured_right = np.zeros((3040,4032,3), dtype=np.uint8)
         print(self.captured_left.shape, self.captured_right.shape)
 
         # save captured image
         timestamp = strftime("%H:%M:%S", localtime())
         print(f"Saving captured sbs image {timestamp}.jpg ...")
         sbs_captured = np.hstack([self.captured_left, self.captured_right])
+        sbs_captured = cv2.cvtColor(sbs_captured, cv2.COLOR_RGBA2BGR)
         cv2.imwrite(home_dir+f"datasets/test/{timestamp}.jpg", sbs_captured)
 
         # notify via bubble windows
         self.capture_notice.show()
+
+    def _slot_fetch_captured_left(self, frame):
+        print(frame.shape)
+        self.captured_left = frame
+
+    def _slot_fetch_captured_right(self, frame):
+        print(frame.shape)
+        self.captured_right = frame
 
     def _slot_folder_select(self):
         str_path, _ = QFileDialog.getOpenFileName(self, "Select a sbs photo...", home_dir, "Images (*.png *.jpg)")

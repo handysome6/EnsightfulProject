@@ -65,11 +65,10 @@ class CameraWithPreview(Gtk.Window):
 video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=30/1 ! \
 tee name=t \
 t. ! queue ! valve drop=1 name=capture_valve ! \
-    nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw,format=BGR ! \
+    nvvidconv ! video/x-raw, format=RGBA ! \
     appsink name=capture_sink async=false emit-signals=1 \
-t. ! queue ! nvtee ! \
+t. ! queue ! \
     nvvidconv ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4}  ! \
-    videoconvert ! video/x-raw, format=BGRx ! \
     gtksink name=gtksink"
         # print(gtksink_pipeline)
         self.pipeline = Gst.parse_launch(gtksink_pipeline)
@@ -198,7 +197,7 @@ class CameraNoPreview():
         fakesink_pipeline = f"nvarguscamerasrc sensor-id={sensor_id} ! \
 video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=10/1 ! \
     queue ! valve drop=1 name=capture_valve ! \
-    nvvidconv ! video/x-raw, format=BGRx ! videoconvert ! video/x-raw,format=BGR ! \
+    nvvidconv ! video/x-raw, format=RGBA ! \
     appsink name=capture_sink async=false emit-signals=1"
         # print(fakesink_pipeline)
         self.pipeline = Gst.parse_launch(fakesink_pipeline)
