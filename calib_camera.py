@@ -32,7 +32,7 @@ image_size = (4032, 3040)       # Jetson IMX477
 is_fisheye = False
 
 # Hyperparams
-folder_name = "0814_6mm_IMX477_jetson"
+folder_name = "0814_6mm_IMX477_jetson3"
 operation_folder = Path("datasets") / folder_name
 rows = 11
 columns = 8
