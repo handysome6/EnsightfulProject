@@ -163,7 +163,7 @@ Camera Distortion: \n{cd2}''')
         pass
 
 
-    def _stereo_calibrate_vanilla(self, fix_intrinsic = True):
+    def _stereo_calibrate_vanilla(self, fix_intrinsic = True, show_pve=False):
         """
         Calibrate STEREO camera - Vanilla
         """
@@ -208,7 +208,8 @@ Distortion Coefficient:\n{cd2}''')
 R: \n{R}
 T: \n{T}""")
         info("Calibrate stereo camera done.")
-        # print(perViewError)
+        if show_pve:
+            print(perViewError)
 
         # update camera params
         if fix_intrinsic:

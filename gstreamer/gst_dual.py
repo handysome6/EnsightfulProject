@@ -30,7 +30,7 @@ def extract_buffer(sample: Gst.Sample) -> np.ndarray:
 
 
 
-class CameraWithPreview(Gtk.Window):
+class DualCameraWithPreview(Gtk.Window):
     """This init camera with preview using Gstreamer + gtksink.
     You can fetch the preview window's xid by get_window_xid(). 
     (Implemented using Gtk, for linux only)"""
@@ -71,7 +71,7 @@ tee name=t \
         valve drop=1 name=valve_0 ! nvvidconv ! video/x-raw, format=RGBA ! \
             mix.sink_0 \
 \
-nvarguscamerasrc sensor-id={1-sensor_id} ! video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=30/1 ! \
+nvarguscamerasrc sensor-id={1-sensor_id} ! video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=NV12, framerate=10/1 ! \
         valve drop=1 name=valve_1 ! nvvidconv ! video/x-raw, format=RGBA ! \
             mix.sink_1 \
 \
@@ -81,7 +81,8 @@ compositor name=mix  sink_0::xpos=0 sink_0::ypos=0  sink_1::xpos=4032 sink_1::yp
         
         # print(gtksink_pipeline)
         self.pipeline = Gst.parse_launch(dual_pipeline)
-        self.capture_valve = self.pipeline.get_by_name("capture_valve")
+        self.valve_0 = self.pipeline.get_by_name("valve_0")
+        self.valve_1 = self.pipeline.get_by_name("valve_1")
         self.capture_sink = self.pipeline.get_by_name("capture_sink")
         # message handler
         self.bus = self.pipeline.get_bus()
@@ -121,7 +122,8 @@ compositor name=mix  sink_0::xpos=0 sink_0::ypos=0  sink_1::xpos=4032 sink_1::yp
 
     def capture(self):
         """open the valve, let buffer flow over"""
-        self.capture_valve.set_property("drop", False)
+        self.valve_0.set_property("drop", False)
+        self.valve_1.set_property("drop", False)
         while self.capture_frame is None:
             time.sleep(0.1)
         capture_frame = self.capture_frame.copy()
@@ -139,7 +141,8 @@ compositor name=mix  sink_0::xpos=0 sink_0::ypos=0  sink_1::xpos=4032 sink_1::yp
                 f"shape {self.capture_frame.shape} "
                 f"type {self.capture_frame.dtype} <<<\n")
             # Once fetched a frame, turn down the valve
-            self.capture_valve.set_property("drop", True)
+            self.valve_0.set_property("drop", True)
+            self.valve_1.set_property("drop", True)
             return Gst.FlowReturn.OK
         else:
             return Gst.FlowReturn.ERROR
@@ -191,11 +194,11 @@ compositor name=mix  sink_0::xpos=0 sink_0::ypos=0  sink_1::xpos=4032 sink_1::yp
 
 
 if __name__ == "__main__":
-    cam = CameraWithPreview()
+    cam = DualCameraWithPreview()
     # Gtk.main()
     time.sleep(2)
-    cam.pause()
+    cam.capture()
     time.sleep(2)
-    cam.resume()
+    cam.capture()
     time.sleep(1)
     cam.stop()
