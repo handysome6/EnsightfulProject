@@ -113,6 +113,8 @@ t. ! queue ! \
     def capture(self):
         """open the valve, let buffer flow over"""
         self.capture_valve.set_property("drop", False)
+
+    def fetch_captured(self):
         while self.capture_frame is None:
             time.sleep(0.1)
         capture_frame = self.capture_frame.copy()
@@ -230,6 +232,8 @@ video/x-raw(memory:NVMM), width={RESOLUTION[0]}, height={RESOLUTION[1]}, format=
     def capture(self):
         """open the valve, let buffer flow over"""
         self.capture_valve.set_property("drop", False)
+
+    def fetch_captured(self):
         while self.capture_frame is None:
             time.sleep(0.1)
         capture_frame = self.capture_frame.copy()

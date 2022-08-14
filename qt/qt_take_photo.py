@@ -1,4 +1,5 @@
 import sys
+import time
 import cv2
 import numpy as np
 from pathlib import Path
@@ -55,7 +56,8 @@ class TakePhotoWindow(QWidget):
 
         # create reuseable vairable
         self._load_default_rectifier()
-        self.captured_frame = None
+        self.captured_left = None
+        self.captured_right = None
         self.capture_notice = Notify.Notification.new("Image Captured!")
         self.capture_notice.set_timeout(1000)
         self.empty_notice = Notify.Notification.new("Please take a photo before measuring!")
@@ -65,9 +67,10 @@ class TakePhotoWindow(QWidget):
         self.show()
 
         # start loading camera
-        self.cameras = CameraWithPreview(sensor_id=0)
+        self.camera_0 = CameraWithPreview(sensor_id=0)
+        self.camera_1 = CameraNoPreview(sensor_id=1)
         # fetch embedded window handle, embed x11 window to qt widget
-        preview_window_xid = self.cameras.get_window_xid()
+        preview_window_xid = self.camera_0.get_window_xid()
         embbed_preview_window = QWindow.fromWinId(preview_window_xid)
         embbed_preview_widget = QWidget.createWindowContainer(embbed_preview_window)
         self.main_layout.replaceWidget(self.preview_area_holder, embbed_preview_widget)
@@ -127,18 +130,18 @@ class TakePhotoWindow(QWidget):
         # self.cam1_worker.moveToThread(self.cam1_thread)
         # self.cam1_thread.started.connect(self.cam0_worker.run)
         # self.cam1_worker.captured.connect(self._slot_fetch_captured_right)
-        
-        # self.captured_left = self.camera_0.capture()
-        # self.captured_right = self.camera_1.capture()
-
-        self.captured_frame = self.camera_0.capture()
-        print(self.captured_frame.shape, self.captured_right.shape)
+        self.camera_0.capture()
+        self.camera_1.capture()
+        self.captured_left = self.camera_0.fetch_captured()
+        self.captured_right = self.camera_1.fetch_captured()
+        print(self.captured_left.shape, self.captured_right.shape)
 
         # save captured image
         timestamp = strftime("%H:%M:%S", localtime())
         print(f"Saving captured sbs image {timestamp}.jpg ...")
-        self.captured_frame = cv2.cvtColor(self.captured_frame, cv2.COLOR_RGBA2BGR)
-        cv2.imwrite(home_dir+f"datasets/test/{timestamp}.jpg", self.captured_frame)
+        sbs_captured = np.hstack([self.captured_left, self.captured_right])
+        sbs_captured = cv2.cvtColor(sbs_captured, cv2.COLOR_RGBA2BGR)
+        cv2.imwrite(home_dir+f"datasets/test/{timestamp}.jpg", sbs_captured)
 
         # notify via bubble windows
         self.capture_notice.show()
@@ -164,10 +167,11 @@ class TakePhotoWindow(QWidget):
         self._open_measure_window(left_rect, right_rect)
         
     def _slot_measure_captured(self):
-        if self.captured_frame is None:
+        if self.captured_left is None or self.captured_right is None:
             self.empty_notice.show()
             return
-        left_rect, right_rect = self.rectifier.rectify_image(sbs_img=self.captured_frame)
+        left_rect, right_rect = self.rectifier.rectify_image(
+            img_left=self.captured_left, img_right=self.captured_right)
         self._open_measure_window(left_rect, right_rect)
 
     def _open_measure_window(self, left_rect, right_rect):
