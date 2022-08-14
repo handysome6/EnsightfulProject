@@ -66,7 +66,7 @@ nvarguscamerasrc sensor-id={sensor_id} ! video/x-raw(memory:NVMM), width={RESOLU
 tee name=t \
     t. ! \
         queue ! nvvidconv ! video/x-raw, width={RESOLUTION[0]//4}, height={RESOLUTION[1]//4} ! \
-            gtksink \
+            gtksink name=gtksink\
     t. ! \
         valve drop=1 name=valve_0 ! nvvidconv ! video/x-raw, format=RGBA ! \
             mix.sink_0 \
