@@ -65,7 +65,10 @@ class ClickImage():
             # 固定选择区域大小 160*120
             # self.cut_img = self.img.copy()[max(0, y - 60): min(y + 60, height), max(x - 80, 0):min(x + 80, width)]
             x_range, y_range = int(width/scale/2), int(height/scale/2)
-            self.cut_img = self.img.copy()[max(0, y - y_range): min(y + y_range, height), max(x - x_range, 0):min(x + x_range, width)]
+            x, y = min(max(x_range, x), width - x_range), min(max(y_range, y), height - y_range)
+            # self.cut_img = self.img.copy()[max(0, y - y_range): min(y + y_range, height),
+            #                max(x - x_range, 0):min(x + x_range, width)]
+            self.cut_img = self.img.copy()[y - y_range: y + y_range, x - x_range:x + x_range]
             point_ID = cv2.getTrackbarPos('pick point', self.windowName)
             self.cut_img = cv2.resize(self.cut_img, (width, height))
             cv2.line(self.cut_img, (int(width / 2), 0), (int(width / 2), height), (0, 0, 255), 10, 1)  # 画面中间画竖线
@@ -92,20 +95,23 @@ class ClickImage():
                 scale = max(cv2.getTrackbarPos('scale', self.windowName),1)
                 # 计算真实坐标
                 height, width = self.img.shape[:2]
+                x_range, y_range = int(width / scale / 2), int(height / scale / 2)
                 # self.mouseX, self.mouseY = int(self.init_x - (x - self.init_x) / scale), int(self.init_y - (y - self.init_y) / scale)
                 self.mouseX, self.mouseY = int(self.init_x - (x - self.init_drag_x) / scale), int(
                     self.init_y - (y - self.init_drag_y) / scale)
-                self.mouseX, self.mouseY = max(1, min(self.mouseX, width)), max(1, min(self.mouseY, height))
+                self.mouseX, self.mouseY = min(max(x_range, self.mouseX), width - x_range), min(max(y_range, self.mouseY), height - y_range)
+                # self.mouseX, self.mouseY = max(1, min(self.mouseX, width)), max(1, min(self.mouseY, height))
                 point_ID = cv2.getTrackbarPos('pick point', self.windowName)
                 if (self.mouseX, self.mouseY) != (0, 0) and \
                             (self.mouseX, self.mouseY) not in self.coords:
-                    if self.mouseX > width/30:
-                        if point_ID == 0:
-                            self.coords[0] = (self.mouseX, self.mouseY)
-                        elif point_ID == 1:
-                            self.coords[1] = (self.mouseX, self.mouseY)
-                    else:
-                        print("The point is too close to the boundary, please select again!")
+                    # if self.mouseX > width/30:
+                    if point_ID == 0:
+                        self.coords[0] = (self.mouseX, self.mouseY)
+                    elif point_ID == 1:
+                        self.coords[1] = (self.mouseX, self.mouseY)
+
+                    # else:
+                    #     print("The point is too close to the boundary, please select again!")
                 self.showImg = self.img.copy()
                 cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
                 height, width = self.img.shape[:2]
@@ -153,8 +159,11 @@ class ClickImage():
                 scale = max(cv2.getTrackbarPos('scale', self.windowName), 1)
                 # self.cut_img = self.img.copy()[max(0, y - 60): min(y + 60, height), max(x - 80, 0):min(x + 80, width)]
                 x_range, y_range = int(width / scale / 2), int(height / scale / 2)
-                self.cut_img = self.img.copy()[max(0, y - y_range): min(y + y_range, height),
-                               max(x - x_range, 0):min(x + x_range, width)]
+                x, y = min(max(x_range, x), width - x_range), min(max(y_range, y), height - y_range)
+                # self.cut_img = self.img.copy()[max(0, y - y_range): min(y + y_range, height),
+                #                max(x - x_range, 0):min(x + x_range, width)]
+                self.cut_img = self.img.copy()[y - y_range: y + y_range, x - x_range:x + x_range]
+
                 point_ID = cv2.getTrackbarPos('pick point', self.windowName)
                 # cv2.line(self.cut_img, (80, 0), (80, 120), (0, 0, 255), 1, 1)
                 # cv2.line(self.cut_img, (0, 60), (160, 60), (0, 0, 255), 1, 1)
@@ -174,6 +183,20 @@ class ClickImage():
                 cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
                 height, width = self.img.shape[:2]
                 cv2.resizeWindow(self.windowName, int(width * 500 / height), 500)
+                cv2.imshow(self.windowName, self.showImg)
+            elif self.flag == 0:
+                self.showImg = self.img.copy()
+                cv2.namedWindow(self.windowName, cv2.WINDOW_NORMAL)
+                height, width = self.img.shape[:2]
+                cv2.resizeWindow(self.windowName, int(width * 500 / height), 500)
+                if self.coords[0] != ():
+                    cv2.circle(self.showImg, np.array(self.coords[0], dtype=np.int32), 15, (0, 0, 255), -1)
+                    cv2.putText(self.showImg, f" {1}", np.array(self.coords[0], dtype=np.int32),
+                                cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 10, 0, 0)
+                if self.coords[1] != ():
+                    cv2.circle(self.showImg, np.array(self.coords[1], dtype=np.int32), 15, (0, 0, 255), -1)
+                    cv2.putText(self.showImg, f" {2}", np.array(self.coords[1], dtype=np.int32),
+                                cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 10, 0, 0)
                 cv2.imshow(self.windowName, self.showImg)
             if cv2.getTrackbarPos('pick point', self.windowName) == 2:
                 # if self.coords[0] == () or self.coords[1] == ():
