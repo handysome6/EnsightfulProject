@@ -113,7 +113,7 @@ class StereoRectify():
         for img_path in tqdm(scenes_imgs, desc="Rectifying".ljust(10)):
             i += 1
             sbs_img = cv2.imread(str(img_path))
-            imgL, imgR = self.rectify_image(sbs_img)
+            imgL, imgR = self.rectify_image(sbs_img = sbs_img)
             left_name  = f"rectify_{str(i).zfill(2)}_left.jpg"
             right_name = f"rectify_{str(i).zfill(2)}_right.jpg"
             cv2.imwrite(str(self.rectify_folder / left_name), imgL)

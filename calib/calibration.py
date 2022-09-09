@@ -218,8 +218,8 @@ T: \n{T}""")
             self.camera.update_intrinsic(cm1, cd1, cm2, cd2)
             self.camera.update_extrinsic(R, T)
         # save params
-        npz_path = self.camera_folder / "camera_model.npz"
-        self.camera.save_model(npz_path)
+        json_path = self.camera_folder / "camera_model.json"
+        self.camera.save_model(json_path)
 
 
     def _stereo_calibrate_fisheye(self):

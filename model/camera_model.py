@@ -1,5 +1,15 @@
 import numpy as np
 from pathlib import Path
+from json import JSONEncoder
+import json
+
+
+class NumpyArrayEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return JSONEncoder.default(self, obj)
+
 
 class CameraModel():
     def __init__(self, image_size, is_fisheye) -> None:
@@ -14,7 +24,7 @@ class CameraModel():
         self.R = self.T = None
         
     @classmethod
-    def load_model(cls, npz_path) -> None:
+    def load_model(cls, json_path) -> None:
         """
         Create camera model from a saved file.
         """
@@ -44,23 +54,28 @@ class CameraModel():
 
         return camera
     
-    def save_model(self, npz_path):
+    def save_model(self, json_path):
         """
         Save this model to Path.
         """
-        print(f"Saving camera model to {npz_path}")
+        print(f"Saving camera model to {json_path}")
         # mkdir if folder not exist
-        npz_path.parent.mkdir(parents=True, exist_ok=True)
-        np.savez(npz_path,
-            image_size = self.image_size,
-            is_fisheye = self.is_fisheye,
-            cm1 = self.cm1, 
-            cd1 = self.cd1, 
-            cm2 = self.cm2, 
-            cd2 = self.cd2,
-            R = self.R, 
-            T = self.T, 
-        )
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Serialization
+        json_array = {"image_size": self.image_size, 
+                     "is_fisheye": self.is_fisheye, 
+                     "cm1": self.cm1, 
+                     "cd1": self.cd1, 
+                     "cm2": self.cm2, 
+                     "cd2": self.cd2, 
+                     "R": self.R, 
+                     "T": self.T, 
+                     }
+        print("serialize NumPy array into JSON and write into a file")
+        with open(json_path, "w") as write_file:
+            json.dump(json_array, write_file, cls=NumpyArrayEncoder)
+        print("Done writing serialized NumPy array into file")
 
 
     def is_calibrated(self):

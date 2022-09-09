@@ -135,9 +135,9 @@ class CalibWindow(QWidget):
 
     def _slot_start_calibration(self):
         # camera info
-        CCD = 'IMX477'
+        image_size = (4032, 3040)       # Jetson IMX477
         fisheye = False
-        camera = CameraModel(CCD, fisheye)
+        camera = CameraModel(image_size, fisheye)
         preprocess = Preprocess(camera, self.project_folder)
         data_path = self.project_folder / "calibration_data"
         preprocess.preprocess_sbs()
