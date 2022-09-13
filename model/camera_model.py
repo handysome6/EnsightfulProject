@@ -28,8 +28,8 @@ class CameraModel():
         """
         Create camera model from a saved file.
         """
-        print(f"Loading camera model at {npz_path}")
-        params = np.load(npz_path)
+        print(f"Loading camera model at {json_path}")
+        params = np.load(json_path)
 
         # dummy camera instance
         camera = CameraModel('IMX477', False)
@@ -39,7 +39,7 @@ class CameraModel():
             camera.image_size = params['image_size']
             camera.is_fisheye = params['is_fisheye']
         except:
-            raise Exception(f"No camera info found at {npz_path}")
+            raise Exception(f"No camera info found at {json_path}")
         
         # modify dummy camera 
         try:

@@ -25,7 +25,7 @@ img_path = list(test_folder.iterdir())[int(id)-1]
 print("Measuring", img_path.name)
 
 # load camera model
-cam_path = Path("example") / "camera_model.npz"
+cam_path = Path("example") / "camera_model.json"
 camera = CameraModel.load_model(cam_path)
 #print(camera)
 

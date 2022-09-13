@@ -113,7 +113,7 @@ class TakePhotoWindow(QWidget):
 
     def _load_default_rectifier(self):
         """Load the default camera model from sample folder"""
-        cam_path = Path(home_dir) / "example" / "camera_model.npz"
+        cam_path = Path(home_dir) / "example" / "camera_model.json"
         camera_model = CameraModel.load_model(cam_path)
         self.rectifier = StereoRectify(camera_model, None)
 

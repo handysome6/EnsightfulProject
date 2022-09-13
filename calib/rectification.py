@@ -30,7 +30,6 @@ class StereoRectify():
             self.rectify_folder = self.operation_folder / 'rectified'
             self.data_folder = self.operation_folder / 'calibration_data'
             self.camera_folder = self.operation_folder / 'camera_model'
-            self.total_photos = len(list(self.scenes_folder.iterdir()))
 
 
     def rectify_camera(self, roi_ratio = 0, new_image_ratio = 1):
@@ -146,6 +145,11 @@ class StereoRectify():
             self.camera.cm2, self.camera.cd2, R2, P2, newImageSize, cv2.CV_16SC2
         )
         print("Calculate map done.")
+        print(self.rightMapX.shape)
+        print()
+        print()
+        print()
+        print()
 
     def _stereo_rectify_fisheye(self, alpha, newImageSize):
         """
@@ -158,7 +162,7 @@ class StereoRectify():
 if __name__ == "__main__":
     operation_folder = '0610_IMX477_infinity_still'
 
-    model_path = Path("datasets") / operation_folder / "calibration_data" / "camera_model.npz"
+    model_path = Path("example") / "camera_model.json"
     camera = CameraModel.load_model(model_path)
 
     rectifier = StereoRectify(camera, operation_folder, )

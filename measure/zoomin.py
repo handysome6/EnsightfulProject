@@ -90,11 +90,3 @@ def cut(oriimg):
     return x
 
 
-if __name__ == '__main__':
-    global img
-    img = cv2.imread('rectify_02_left.jpg')
-    cv2.namedWindow('image', cv2.WINDOW_NORMAL)
-    cv2.setMouseCallback('image', on_mouse)
-    # imshow('image', img)
-    cv2.imshow('image', img)
-    cv2.waitKey(0)

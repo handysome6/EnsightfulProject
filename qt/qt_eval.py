@@ -63,7 +63,7 @@ class Evaluation(QWidget):
         """Load the camera model. Default from example folder"""
         if cam_path is None:
             self.console.appendPlainText("Loading default camera model...")
-            cam_path = Path(".") / "example" / "camera_model.npz"
+            cam_path = Path(".") / "example" / "camera_model.json"
         else:
             self.console.appendPlainText("Loading selected camera model...")
         camera_model = CameraModel.load_model(cam_path)
@@ -73,7 +73,7 @@ class Evaluation(QWidget):
 
     def _slot_select_camera(self):
         str_path, _ = QFileDialog.getOpenFileName(
-            self, "Select another camera model...", "./datasets", "*.npz"
+            self, "Select another camera model...", "./datasets", "*.json"
         )
         if str_path != '':
             cam_path = Path(str_path).relative_to(Path('.').resolve())

@@ -196,7 +196,7 @@ class ProjectWindow(QWidget):
         icon = QIcon("qt/cam_model_icon.png")
         try:
             model_folder = self.project_folder / 'camera_model'
-            self.models['project'] = list(model_folder.glob('*.npz'))
+            self.models['project'] = list(model_folder.glob('*.json'))
         except:
             print("Camera model folder doesn't exist ./datasets/PROJECT_FOLDER/camera_model/")
         all_models = self.models['project'] + self.models['extra']
@@ -258,7 +258,7 @@ class ProjectWindow(QWidget):
         print("Selected camera model: " + str(self.current_model))
 
     def _slot_add_camera_model(self):
-        str_path, _ = QFileDialog.getOpenFileName(self, "Select another camera model...", str(self.datasets_folder), "*.npz")
+        str_path, _ = QFileDialog.getOpenFileName(self, "Select another camera model...", str(self.datasets_folder), "*.json")
         if str_path != '':
             relative_path = Path(str_path).relative_to(Path('.').resolve())
             print("Added camera model: " + str(relative_path))

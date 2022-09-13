@@ -89,7 +89,7 @@ class MainWindow(QWidget):
         self.model_selection.clear()
         icon = QIcon("qt/cam_model_icon.png")
         model_path = self.project_folder / 'camera_model'
-        self.models = list(model_path.glob('*.npz'))
+        self.models = list(model_path.glob('*.json'))
         for model in self.models:
             self.model_selection.addItem(icon, model.name)
         # try set current selected model
