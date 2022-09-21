@@ -152,9 +152,9 @@ class Ruler():
         cv2.putText(show_img, f"dx: {dx:.2f}mm, dy: {dy:.2f}mm, dz: {dz:.2f}mm,",
                     (20, 300), cv2.FONT_HERSHEY_SIMPLEX, 5, (0, 255, 0), 8)
         # show point coordinates
-        x1, y1, z1 = world_coord1[0].astype(np.float32), world_coord1[1].astype(np.float32), world_coord1[1].astype(
+        x1, y1, z1 = world_coord1[0].astype(np.float32), world_coord1[1].astype(np.float32), world_coord1[2].astype(
             np.float32)
-        x2, y2, z2 = world_coord2[0].astype(np.float32), world_coord2[1].astype(np.float32), world_coord2[1].astype(
+        x2, y2, z2 = world_coord2[0].astype(np.float32), world_coord2[1].astype(np.float32), world_coord2[2].astype(
             np.float32)
         cv2.putText(show_img, f"point1: ({x1:.1f}, {y1:.1f}, {z1:.1f})", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 5,
                     (0, 255, 0), 8)
