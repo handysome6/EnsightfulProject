@@ -24,38 +24,58 @@ class CameraModel():
         self.R = self.T = None
         
     @classmethod
-    def load_model(cls, json_path) -> None:
+    def load_model(cls, cam_path) -> None:
         """
         Create camera model from a saved file.
         """
         # dummy camera instance
         camera = CameraModel('IMX477', False)
+        print(f"Loading camera model at {cam_path}")
 
-        print(f"Loading camera model at {json_path}")
-        with open(json_path, "r") as read_file:
-            print("Converting JSON encoded data into Numpy array")
-            decodedArray = json.load(read_file)
+        if Path(cam_path).suffix == ".json":
+            with open(cam_path, "r") as read_file:
+                decodedArray = json.load(read_file)
+                # make sure camera info exist, else raise Errors
+                try:
+                    camera.image_size = np.asarray(decodedArray["image_size"])
+                    camera.is_fisheye = np.asarray(decodedArray['is_fisheye'])
+                except:
+                    raise Exception(f"No camera info found at {cam_path}")
+                
+                # modify dummy camera 
+                try:
+                    camera.cm1 = np.asarray(decodedArray['cm1'])
+                    camera.cd1 = np.asarray(decodedArray['cd1'])
+                    camera.cm2 = np.asarray(decodedArray['cm2'])
+                    camera.cd2 = np.asarray(decodedArray['cd2'])
+                    camera.R = np.asarray(decodedArray['R'])
+                    camera.T = np.asarray(decodedArray['T'])
+                except: # if encounter None object, then no assignment
+                    pass
+        else:
             # make sure camera info exist, else raise Errors
+            params = np.load(cam_path)
             try:
-                camera.image_size = np.asarray(decodedArray["image_size"])
-                camera.is_fisheye = np.asarray(decodedArray['is_fisheye'])
+                camera.image_size = params['image_size']
+                camera.is_fisheye = params['is_fisheye']
             except:
-                raise Exception(f"No camera info found at {json_path}")
+                raise Exception(f"No camera info found at {cam_path}")
             
             # modify dummy camera 
             try:
-                camera.cm1 = np.asarray(decodedArray['cm1'])
-                camera.cd1 = np.asarray(decodedArray['cd1'])
-                camera.cm2 = np.asarray(decodedArray['cm2'])
-                camera.cd2 = np.asarray(decodedArray['cd2'])
-                camera.R = np.asarray(decodedArray['R'])
-                camera.T = np.asarray(decodedArray['T'])
+                camera.cm1 = params['cm1']
+                camera.cd1 = params['cd1']
+                camera.cm2 = params['cm2']
+                camera.cd2 = params['cd2']
+                camera.R = params['R']
+                camera.T = params['T']
             except: # if encounter None object, then no assignment
                 pass
 
-
+        print(camera)
         return camera
-    
+
+
     def save_model(self, json_path):
         """
         Save this model to Path.

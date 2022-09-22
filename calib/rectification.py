@@ -87,7 +87,6 @@ class StereoRectify():
                 "Either sbs_img or img_left/right.")
         
         # rectify the given image
-        print(img_left.dtype)
         left_rect = cv2.remap(
             img_left, self.leftMapX, self.leftMapY, 
             interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT

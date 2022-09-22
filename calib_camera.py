@@ -32,7 +32,7 @@ image_size = (4032, 3040)       # Jetson IMX477
 is_fisheye = False
 
 # Hyperparams
-folder_name = "test"
+folder_name = "0920_m12_Cplus"
 operation_folder = Path("datasets") / folder_name
 rows = 11
 columns = 8
@@ -53,7 +53,7 @@ square_size = 60
 # print()
 
 camera_path = operation_folder / 'camera_model'
-model_path = Path("example") / "camera_model.npz"
+model_path = Path("example") / "camera_model.json"
 camera = CameraModel.load_model(model_path)
 rectifier = StereoRectify(camera, operation_folder)
 rectifier.rectify_camera(roi_ratio=0, new_image_ratio=1)

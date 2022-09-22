@@ -73,7 +73,7 @@ class Evaluation(QWidget):
 
     def _slot_select_camera(self):
         str_path, _ = QFileDialog.getOpenFileName(
-            self, "Select another camera model...", "./datasets", "*.json"
+            self, "Select another camera model...", "./datasets", "*.json *.npz"
         )
         if str_path != '':
             cam_path = Path(str_path).relative_to(Path('.').resolve())
@@ -133,7 +133,8 @@ class Evaluation(QWidget):
             if distance < 100:
                 edges.append(distance)
             else:
-                print(point_id_1, point_id_2)
+                # print(point_id_1, point_id_2)
+                pass
         msg = f'''Box Length Performance:
 Max: {max(edges)}; Min: {min(edges)}
 Mean: {mean(edges)}; Stdev: {stdev(edges)} '''
