@@ -128,7 +128,7 @@ class Preprocess():
         result = [None, None]
         t = Thread(target=_worker, args=(img, result), daemon=True)
         t.start()
-        t.join(5)
+        t.join(30)
         ret, corners = result
         return ret, corners
 
