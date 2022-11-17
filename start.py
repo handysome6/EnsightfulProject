@@ -12,11 +12,14 @@ consoleHandler = logging.StreamHandler(sys.stdout)
 consoleHandler.setFormatter(logFormatter)
 rootLogger.addHandler(consoleHandler)
 
+# import os
+# path ="//home/andyls/.local/lib/python3.8/site-packages/PyQt5/Qt5/plugins/platforms/"
+# os.environ['QT_QPA_PLATFORM_PLUGIN_PATH']=path
 
 
 app = QtWidgets.QApplication([])
-widget = ProjectWindow()
-widget.resize(800, 600)
+widget = MainWindow()
+# widget.resize(800, 600)
 widget.show()
 
 sys.exit(app.exec())
